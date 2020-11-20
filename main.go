@@ -20,6 +20,7 @@ import (
 	"flag"
 	"os"
 
+	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -41,6 +42,8 @@ func init() {
 
 	_ = sampleissuerv1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
+
+	_ = cmapi.AddToScheme(scheme)
 }
 
 func main() {
@@ -80,6 +83,15 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterIssuer")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.CertificateRequestReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("CertificateRequest"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CertificateRequest")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

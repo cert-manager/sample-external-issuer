@@ -134,6 +134,55 @@ make generate manifests
 
 You should see a number of new and modified files, reflecting the changes you made to the API source files and to the markers.
 
+### Creating a CertificateRequest controller
+
+We now need a controller to handle [cert-manager CertificateRequest resources](https://cert-manager.io/docs/concepts/certificaterequest/).
+This controller will watch for `CertificateRequest` resources and attempt to sign their attached x509 certificate signing requests (CSR).
+Your external issuer will likely interact with your certificate authority using a REST API,
+so this is the controller where we will eventually need to instantiate an HTTP client,
+directly or via an API wrapper library.
+And we will need to get the configuration and credentials for this from the `Issuer` or `ClusterIssuer` referred to by the `CertificateRequest`.
+
+Start by copying the `controllers/issuer_controller.go` to `controllers/certificaterequest_controller.go`
+and modifying its code and comments to refer to `CertificateRequest` rather than `Issuer`.
+
+NOTE: You will need to import the [cert-manager V1 API](https://cert-manager.io/docs/reference/api-docs/)
+and this in turn will pull in a number of transitive dependencies of cert-manager which we will deal with shortly.
+
+```
+import (
+...
+    cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+...
+)
+
+```
+
+Next edit `main.go` and register the new `CertificateRequestReconciler` in the same way that the `IssuerReconciler` is registered.
+You will also need to add the cert-manager API types to the `Scheme`:
+
+```
+
+func init() {
+...
+    _ = cmapi.AddToScheme(scheme)
+...
+}
+```
+
+The `Scheme` is how the controller-runtime client knows how to decode and encode the API resources from the Kubernetes API server.
+So it is important to add all the API types that are used in your issuer.
+
+Finally run `make generate manifests` again to update all the generated code.
+
+NOTE: You may encounter a dependency conflict between the version of controller-runtime used by cert-manager and the version installed by Kubebuilder.
+We have to use the cert-manager version and that in turn requires a newer version of the `zapr` logging library.
+Add the following line to `go.mod`:
+
+```
+github.com/go-logr/zapr v0.2.0 // indirect
+```
+
 ## Links
 
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers
