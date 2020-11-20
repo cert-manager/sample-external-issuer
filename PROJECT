@@ -1,0 +1,3 @@
+domain: example.com
+repo: github.com/cert-manager/sample-external-issuer
+version: "2"
