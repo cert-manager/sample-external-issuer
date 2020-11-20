@@ -25,6 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	sampleissuerapi "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
 )
 
 // CertificateRequestReconciler reconciles a CertificateRequest object
@@ -48,6 +50,12 @@ func (r *CertificateRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 			return ctrl.Result{}, fmt.Errorf("unexpected get error: %v", err)
 		}
 		log.Info("Not found. Ignoring.")
+		return ctrl.Result{}, nil
+	}
+
+	// Ignore CertificateRequest if issuerRef doesn't match our group
+	if certificateRequest.Spec.IssuerRef.Group != sampleissuerapi.GroupVersion.Group {
+		log.Info("Foreign group. Ignoring.", "group", certificateRequest.Spec.IssuerRef.Group)
 		return ctrl.Result{}, nil
 	}
 

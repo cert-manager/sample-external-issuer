@@ -206,6 +206,18 @@ Other error types are assumed to be temporary errors and are returned.
 NOTE: If you return an `error`, controller-runtime will retry with an increasing backoff,
 so it is very important to distinguish between temporary and permanent errors.
 
+#### Ignore foreign CertificateRequest
+
+We only want to reconcile `CertificateRequest` resources that are configured for our external issuer.
+So the next piece of controller logic attempts to exit early if `CertificateRequest.Spec.IssuerRef` does not refer to our particular `Issuer` or `ClusterIssuer` types.
+
+As before explore the unit-tests and see how we modify the success case, where the `IssuerRef` does refer to one of our types.
+And then we add some error cases where the `Group` or the `Kind` are unrecognised.
+
+Also note how in the implementation we use the `Scheme.New`  method to verify the `Kind`.
+This later will allow us to easily handle both `Issuer` and `ClusterIssuer` references.
+
+If there is a mismatch in the `IssuerRef` we ignore the `CertificateRequest`.
 
 ## Links
 

@@ -6,6 +6,7 @@ import (
 
 	logrtesting "github.com/go-logr/logr/testing"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmgen "github.com/jetstack/cert-manager/test/unit/gen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,11 +33,28 @@ func TestCertificateRequestReconcile(t *testing.T) {
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
+					cmgen.SetCertificateRequestIssuer(cmmeta.ObjectReference{
+						Name:  "issuer1",
+						Group: sampleissuerapi.GroupVersion.Group,
+					}),
 				),
 			},
 		},
 		"certificaterequest-not-found": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
+		},
+		"issuer-ref-foreign-group": {
+			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
+			objects: []runtime.Object{
+				cmgen.CertificateRequest(
+					"cr1",
+					cmgen.SetCertificateRequestNamespace("ns1"),
+					cmgen.SetCertificateRequestIssuer(cmmeta.ObjectReference{
+						Name:  "issuer1",
+						Group: "foreign-issuer.example.com",
+					}),
+				),
+			},
 		},
 	}
 
