@@ -183,6 +183,30 @@ Add the following line to `go.mod`:
 github.com/go-logr/zapr v0.2.0 // indirect
 ```
 
+#### Get the CertificateRequest
+
+The `CertificateRequestReconciler` is triggered by changes to any `CertificateRequest` resource in the cluster.
+The `Reconcile` function is called with the name of the object that changed, and
+the first thing we need to do is to `GET` the complete object from the Kubernetes API server.
+
+The `Reconcile` function may occasionally be triggered with the names of deleted resources,
+so we have to handle that case gracefully.
+
+Explore the unit-tests in `controllers/certificaterequest_test.go` and try running the tests and seeing them fail
+*before* updating the controller code.
+These are table-driven tests  which will execute the `Reconcile` function many times,
+with inputs supplied as function arguments and also certain inputs that come from the parent object.
+It also uses a `FakeClient` which can be primed with a collection of Kubernetes API objects.
+The test will check the output of the `Reconcile` function for errors and later we will make it check the changes that have been made to the supplied API objects.
+
+In the implementation we are careful to `return Result{}, nil` when the `CertificateRequest` is not found.
+This tells controller-runtime *do not retry*.
+Other error types are assumed to be temporary errors and are returned.
+
+NOTE: If you return an `error`, controller-runtime will retry with an increasing backoff,
+so it is very important to distinguish between temporary and permanent errors.
+
+
 ## Links
 
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers

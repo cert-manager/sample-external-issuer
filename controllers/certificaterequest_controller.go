@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -37,10 +38,18 @@ type CertificateRequestReconciler struct {
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests/status,verbs=get;update;patch
 
 func (r *CertificateRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("certificaterequest", req.NamespacedName)
+	ctx := context.Background()
+	log := r.Log.WithValues("certificaterequest", req.NamespacedName)
 
-	// your logic here
+	// Get the CertificateRequest
+	var certificateRequest cmapi.CertificateRequest
+	if err := r.Get(ctx, req.NamespacedName, &certificateRequest); err != nil {
+		if err := client.IgnoreNotFound(err); err != nil {
+			return ctrl.Result{}, fmt.Errorf("unexpected get error: %v", err)
+		}
+		log.Info("Not found. Ignoring.")
+		return ctrl.Result{}, nil
+	}
 
 	return ctrl.Result{}, nil
 }
