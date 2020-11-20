@@ -1,0 +1,20 @@
+# permissions for end users to view issuers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: issuer-viewer-role
+rules:
+- apiGroups:
+  - sample-issuer.example.com
+  resources:
+  - issuers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - sample-issuer.example.com
+  resources:
+  - issuers/status
+  verbs:
+  - get
