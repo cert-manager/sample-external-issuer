@@ -50,6 +50,14 @@ cd sample-external-issuer
 git init
 ```
 
+### Initialise a Go mod file
+
+A Go project needs a `go.mod` file which defines the root name of your Go packages.
+
+```
+go mod init github.com/cert-manager/sample-external-issuer
+```
+
 ## Links
 
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers
