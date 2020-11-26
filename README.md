@@ -219,6 +219,21 @@ This later will allow us to easily handle both `Issuer` and `ClusterIssuer` refe
 
 If there is a mismatch in the `IssuerRef` we ignore the `CertificateRequest`.
 
+#### Set the CertificateRequest Ready condition
+
+The [External Issuer] documentation says the following:
+
+ It is important to update the condition status of the `CertificateRequest` to a ready state,
+ as this is what is used to signal to higher order controllers, such as the Certificate controller, that the resource is ready to be consumed.
+ Conversely, if the `CertificateRequest` fails, it is important to mark the resource as such, as this will also be used to signal to higher order controllers.
+
+So now we need to ensure that our issuer always sets one of the [strongly defined conditions](https://cert-manager.io/docs/concepts/certificaterequest/#conditions)
+on all the `CertificateRequest` referring to our `Group`.
+
+Study the changes and the additional tests.
+Note that the first thing we do is check whether the `Ready` condition is already `true` in which case we can exit early.
+Note also the use of a `defer` function which ensures that the condition is always set and that it is always set to false if an error has occurred.
+
 ## Links
 
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers
