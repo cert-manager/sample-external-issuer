@@ -234,6 +234,20 @@ Study the changes and the additional tests.
 Note that the first thing we do is check whether the `Ready` condition is already `true` in which case we can exit early.
 Note also the use of a `defer` function which ensures that the condition is always set and that it is always set to false if an error has occurred.
 
+#### Get the Issuer or ClusterIssuer
+
+The `Issuer` or `ClusterIssuer` for the `CertificateRequest` will usually contain configuration that you will need to connect to your certificate authority API.
+It may also contain a reference to a `Secret` containing credentials which you will use to authenticate with with your certificate authority API.
+
+So now we attempt to `GET` the `Issuer` or `ClusterIssuer` and to do this we need to derive a resource name.
+An `Issuer` has both a name and a namespace.
+A `ClusterIssuer` is [cluster scoped](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/#not-all-objects-are-in-a-namespace) and does not have a namespace.
+So we check which type we have in order to derive the correct name.
+
+If the `GET` request fails, we return the error so as to trigger the retry-with-backoff behaviour (described above).
+This allows for situations where the `CertificateRequest` may have been created before the corresponding `Issuer`.
+This case is demonstrated in the unit tests.
+
 ## Links
 
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers

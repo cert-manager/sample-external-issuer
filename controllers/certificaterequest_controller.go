@@ -26,6 +26,7 @@ import (
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -35,6 +36,7 @@ import (
 
 var (
 	errIssuerRef = errors.New("error interpreting issuerRef")
+	errGetIssuer = errors.New("error getting issuer")
 )
 
 // CertificateRequestReconciler reconciles a CertificateRequest object
@@ -108,12 +110,34 @@ func (r *CertificateRequestReconciler) Reconcile(req ctrl.Request) (result ctrl.
 
 	// Ignore but log an error if the issuerRef.Kind is unrecognised
 	issuerGVK := sampleissuerapi.GroupVersion.WithKind(certificateRequest.Spec.IssuerRef.Kind)
-	_, err = r.Scheme.New(issuerGVK)
+	issuer, err := r.Scheme.New(issuerGVK)
 	if err != nil {
 		err = fmt.Errorf("%w: %v", errIssuerRef, err)
 		log.Error(err, "Unrecognised kind. Ignoring.")
 		setReadyCondition(cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, err.Error())
 		return ctrl.Result{}, nil
+	}
+
+	// Create a Namespaced name for Issuer and a non-Namespaced name for ClusterIssuer
+	issuerName := types.NamespacedName{
+		Name: certificateRequest.Spec.IssuerRef.Name,
+	}
+	switch t := issuer.(type) {
+	case *sampleissuerapi.Issuer:
+		issuerName.Namespace = certificateRequest.Namespace
+		log = log.WithValues("issuer", issuerName)
+	case *sampleissuerapi.ClusterIssuer:
+		log = log.WithValues("clusterissuer", issuerName)
+	default:
+		err := fmt.Errorf("unexpected issuer type: %v", t)
+		log.Error(err, "The issuerRef referred to a registered Kind which is not yet handled. Ignoring.")
+		setReadyCondition(cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, err.Error())
+		return ctrl.Result{}, nil
+	}
+
+	// Get the Issuer or ClusterIssuer
+	if err := r.Get(ctx, issuerName, issuer); err != nil {
+		return ctrl.Result{}, fmt.Errorf("%w: %v", errGetIssuer, err)
 	}
 
 	setReadyCondition(cmmeta.ConditionTrue, cmapi.CertificateRequestReasonIssued, "Signed")
