@@ -36,6 +36,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					cmgen.SetCertificateRequestIssuer(cmmeta.ObjectReference{
 						Name:  "issuer1",
 						Group: sampleissuerapi.GroupVersion.Group,
+						Kind:  "Issuer",
 					}),
 				),
 			},
@@ -52,6 +53,20 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					cmgen.SetCertificateRequestIssuer(cmmeta.ObjectReference{
 						Name:  "issuer1",
 						Group: "foreign-issuer.example.com",
+					}),
+				),
+			},
+		},
+		"issuer-ref-unknown-kind": {
+			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
+			objects: []runtime.Object{
+				cmgen.CertificateRequest(
+					"cr1",
+					cmgen.SetCertificateRequestNamespace("ns1"),
+					cmgen.SetCertificateRequestIssuer(cmmeta.ObjectReference{
+						Name:  "issuer1",
+						Group: sampleissuerapi.GroupVersion.Group,
+						Kind:  "ForeignKind",
 					}),
 				),
 			},

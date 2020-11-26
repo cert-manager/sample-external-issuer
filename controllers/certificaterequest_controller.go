@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -27,6 +28,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	sampleissuerapi "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
+)
+
+var (
+	errIssuerRef = errors.New("error interpreting issuerRef")
 )
 
 // CertificateRequestReconciler reconciles a CertificateRequest object
@@ -59,6 +64,13 @@ func (r *CertificateRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		return ctrl.Result{}, nil
 	}
 
+	// Ignore but log an error if the issuerRef.Kind is unrecognised
+	issuerGVK := sampleissuerapi.GroupVersion.WithKind(certificateRequest.Spec.IssuerRef.Kind)
+	_, err := r.Scheme.New(issuerGVK)
+	if err != nil {
+		log.Error(fmt.Errorf("%w: %v", errIssuerRef, err), "Unrecognised kind. Ignoring.")
+		return ctrl.Result{}, nil
+	}
 	return ctrl.Result{}, nil
 }
 
