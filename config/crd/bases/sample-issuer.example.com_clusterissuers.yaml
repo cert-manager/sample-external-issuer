@@ -43,6 +43,43 @@ spec:
           type: object
         status:
           description: IssuerStatus defines the observed state of Issuer
+          properties:
+            conditions:
+              description: List of status conditions to indicate the status of a CertificateRequest.
+                Known condition types are `Ready`.
+              items:
+                description: IssuerCondition contains condition information for an
+                  Issuer.
+                properties:
+                  lastTransitionTime:
+                    description: LastTransitionTime is the timestamp corresponding
+                      to the last status change of this condition.
+                    format: date-time
+                    type: string
+                  message:
+                    description: Message is a human readable description of the details
+                      of the last transition, complementing reason.
+                    type: string
+                  reason:
+                    description: Reason is a brief machine readable explanation for
+                      the condition's last transition.
+                    type: string
+                  status:
+                    description: Status of the condition, one of ('True', 'False',
+                      'Unknown').
+                    enum:
+                    - "True"
+                    - "False"
+                    - Unknown
+                    type: string
+                  type:
+                    description: Type of the condition, known values are ('Ready').
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              type: array
           type: object
       type: object
   version: v1alpha1

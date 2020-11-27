@@ -248,6 +248,16 @@ If the `GET` request fails, we return the error so as to trigger the retry-with-
 This allows for situations where the `CertificateRequest` may have been created before the corresponding `Issuer`.
 This case is demonstrated in the unit tests.
 
+#### Check the Issuer or ClusterIssuer Ready condition
+
+An issuer will often perform some initialisation when it is first created,
+for example it might create a private key and CA certificate and store those somewhere,
+and such operations take time.
+So we give the `Issuer` and `ClusterIssuer` resources their own Ready conditions which the `IssuerReconciler` can set to signal that the initialization is complete and that the issuer is ready and healthy.
+
+The `CertificateRequestReconciler` should then wait for the `Issuer` to be Ready before progressing further.
+
+
 ## Links
 
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers
