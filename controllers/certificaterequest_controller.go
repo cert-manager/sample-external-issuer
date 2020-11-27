@@ -32,11 +32,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	sampleissuerapi "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
+	issuerutil "github.com/cert-manager/sample-external-issuer/internal/issuer/util"
 )
 
 var (
-	errIssuerRef = errors.New("error interpreting issuerRef")
-	errGetIssuer = errors.New("error getting issuer")
+	errIssuerRef      = errors.New("error interpreting issuerRef")
+	errGetIssuer      = errors.New("error getting issuer")
+	errIssuerNotReady = errors.New("issuer is not ready")
 )
 
 // CertificateRequestReconciler reconciles a CertificateRequest object
@@ -138,6 +140,17 @@ func (r *CertificateRequestReconciler) Reconcile(req ctrl.Request) (result ctrl.
 	// Get the Issuer or ClusterIssuer
 	if err := r.Get(ctx, issuerName, issuer); err != nil {
 		return ctrl.Result{}, fmt.Errorf("%w: %v", errGetIssuer, err)
+	}
+
+	issuerStatus, err := issuerutil.GetStatus(issuer)
+	if err != nil {
+		log.Error(err, "Unable to get the IssuerStatus. Ignoring.")
+		setReadyCondition(cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, err.Error())
+		return ctrl.Result{}, nil
+	}
+
+	if !issuerutil.IsReady(issuerStatus) {
+		return ctrl.Result{}, errIssuerNotReady
 	}
 
 	setReadyCondition(cmmeta.ConditionTrue, cmapi.CertificateRequestReasonIssued, "Signed")
