@@ -278,6 +278,28 @@ but that is a little more complicated and for now we will concentrate on Issuer 
 
 Both the `IssuerReconciler` and the `CertificateRequestReconciler` are updated to `GET` the `Secret` referred to by the `Issuer`.
 
+Add a new [Kubebuilder RBAC Marker](https://book.kubebuilder.io/reference/markers/rbac.html) to both controllers,
+permitting them read-only access to `Secret` resources.
+
+```
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+```
+
+Then run `make manifests` to regenerate the RBAC configuration in `config/`.
+
+Add the `corev1` types to the `Scheme` in the unit-tests.
+
+NOTE: It has already been added to the `main.go` `Scheme` as part of the `clientgoscheme`.
+
+Write a test to check that if the `GET` `Secret` operation fails,
+the error is returned and triggers a retry-with-backoff.
+This important because the `Secret` may not exist at the time the `Issuer` or `CertificateRequest` is created.
+
+NOTE: Ideally, we would `WATCH` for the particular `Secret` and trigger the reconciliation when it becomes available.
+And that may be a future enhancement to this project.
+
+
+
 ## Links
 
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers

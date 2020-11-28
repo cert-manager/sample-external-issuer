@@ -18,10 +18,13 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,6 +37,10 @@ const (
 	issuerReadyConditionReason = "sample-issuer.IssuerController.Reconcile"
 )
 
+var (
+	errGetAuthSecret = errors.New("failed to get Secret containing Issuer credentials")
+)
+
 // IssuerReconciler reconciles a Issuer object
 type IssuerReconciler struct {
 	client.Client
@@ -43,6 +50,7 @@ type IssuerReconciler struct {
 
 // +kubebuilder:rbac:groups=sample-issuer.example.com,resources=issuers,verbs=get;list;watch
 // +kubebuilder:rbac:groups=sample-issuer.example.com,resources=issuers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 func (r *IssuerReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, err error) {
 	ctx := context.Background()
@@ -72,6 +80,15 @@ func (r *IssuerReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, err 
 	if ready := issuerutil.GetReadyCondition(&issuer.Status); ready == nil {
 		issuerutil.SetReadyCondition(&issuer.Status, sampleissuerapi.ConditionUnknown, issuerReadyConditionReason, "First seen")
 		return ctrl.Result{}, nil
+	}
+
+	secretName := types.NamespacedName{
+		Name:      issuer.Spec.AuthSecretName,
+		Namespace: issuer.Namespace,
+	}
+	var secret corev1.Secret
+	if err := r.Get(ctx, secretName, &secret); err != nil {
+		return ctrl.Result{}, fmt.Errorf("%w, secret name: %s, reason: %v", errGetAuthSecret, secretName, err)
 	}
 
 	issuerutil.SetReadyCondition(&issuer.Status, sampleissuerapi.ConditionTrue, issuerReadyConditionReason, "Success")

@@ -7,6 +7,7 @@ import (
 	logrtesting "github.com/go-logr/logr/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,6 +36,9 @@ func TestIssuerReconcile(t *testing.T) {
 						Name:      "issuer1",
 						Namespace: "ns1",
 					},
+					Spec: sampleissuerapi.IssuerSpec{
+						AuthSecretName: "issuer1-credentials",
+					},
 					Status: sampleissuerapi.IssuerStatus{
 						Conditions: []sampleissuerapi.IssuerCondition{
 							{
@@ -42,6 +46,12 @@ func TestIssuerReconcile(t *testing.T) {
 								Status: sampleissuerapi.ConditionUnknown,
 							},
 						},
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1-credentials",
+						Namespace: "ns1",
 					},
 				},
 			},
@@ -62,10 +72,35 @@ func TestIssuerReconcile(t *testing.T) {
 			},
 			expectedReadyConditionStatus: sampleissuerapi.ConditionUnknown,
 		},
+		"issuer-missing-secret": {
+			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
+			objects: []runtime.Object{
+				&sampleissuerapi.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1",
+						Namespace: "ns1",
+					},
+					Spec: sampleissuerapi.IssuerSpec{
+						AuthSecretName: "issuer1-credentials",
+					},
+					Status: sampleissuerapi.IssuerStatus{
+						Conditions: []sampleissuerapi.IssuerCondition{
+							{
+								Type:   sampleissuerapi.IssuerConditionReady,
+								Status: sampleissuerapi.ConditionUnknown,
+							},
+						},
+					},
+				},
+			},
+			expectedError:                errGetAuthSecret,
+			expectedReadyConditionStatus: sampleissuerapi.ConditionFalse,
+		},
 	}
 
 	scheme := runtime.NewScheme()
 	require.NoError(t, sampleissuerapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
