@@ -258,6 +258,26 @@ So we give the `Issuer` and `ClusterIssuer` resources their own Ready conditions
 The `CertificateRequestReconciler` should then wait for the `Issuer` to be Ready before progressing further.
 
 
+#### Get the Issuer or ClusterIssuer credentials from a Secret
+
+The API for your CA may require some configuration and credentials and the obvious place to store these is in a Kubernetes `Secret`.
+We extend the `IssuerSpec` to include a `URL` field and a `AuthSecretName`, which is the name of a `Secret`.
+As usual run `make generate manifests` after modifying the API source files:
+
+```
+make generate manifests
+```
+
+NOTE: The namespace of that Secret is deliberately not specified here,
+because that would breach a security boundary and potentially allow someone who has permission to create `Issuer` resources,
+to make the controller access secrets in another namespace which that person would not normally have access to.
+
+For this reason, the Secret for an Issuer MUST be in the same namespace as the Issuer.
+The Secret for a ClusterIssuer MUST be in a namespace defined by cluster administrator,
+but that is a little more complicated and for now we will concentrate on Issuer Secrets.
+
+Both the `IssuerReconciler` and the `CertificateRequestReconciler` are updated to `GET` the `Secret` referred to by the `Issuer`.
+
 ## Links
 
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers

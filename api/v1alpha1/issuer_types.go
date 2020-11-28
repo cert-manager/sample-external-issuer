@@ -20,16 +20,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // IssuerSpec defines the desired state of Issuer
 type IssuerSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// URL is the base URL for the endpoint of the signing service,
+	// for example: "https://sample-signer.example.com/api".
+	URL string `json:"url"`
 
-	// Foo is an example field of Issuer. Edit Issuer_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// A reference to a Secret in the same namespace as the referent. If the
+	// referent is a ClusterIssuer, the reference instead refers to the resource
+	// with the given name in the configured 'cluster resource namespace', which
+	// is set as a flag on the controller component (and defaults to the
+	// namespace that the controller runs in).
+	AuthSecretName string `json:"authSecretName"`
 }
 
 // IssuerStatus defines the observed state of Issuer

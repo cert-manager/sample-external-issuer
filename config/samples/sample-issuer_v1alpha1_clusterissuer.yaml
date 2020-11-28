@@ -3,5 +3,5 @@ kind: ClusterIssuer
 metadata:
   name: clusterissuer-sample
 spec:
-  # Add fields here
-  foo: bar
+  authSecretName: "clusterissuer-sample-credentials"
+  url: "http://sample-issuer.example.com/api/v1"
