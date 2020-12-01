@@ -337,7 +337,30 @@ we need to make controller-runtime retry reconciling regularly, even when the cu
 We do this by setting the `Result.RequeueAfter` field of the returned result.
 
 
+### Sign the CertificateRequest
 
+Now we turn back to the `CertificateRequestReconciler` and think about how we want it to handle the certificate signing request (CSR).
+
+Let's once again assume that the issuer will connect to a certificate authority API.
+We extend the `signer` package with a new simple `Interface` and a factory function definition
+(for the same reasons given about in the Issuer Health Checks section):
+
+```
+type Signer interface {
+    Sign([]byte) ([]byte, error)
+}
+
+type SignerBuilder func(*sampleissuerapi.IssuerSpec, map[string][]byte) (Signer, error)
+```
+
+We don't need to implement it yet,
+we just need to plug that into the `CertificateRequestReconciler` and add a fake implementation to the tests
+so that we can check how the reconciler behaves when `Sign` fails.
+
+If `Sign` succeeds it returns the bytes of a signed certificate which we then use as the value for `CertificateRequest.Status.Certificate`.
+And we add a unit-test for this case.
+
+In the unit-tests, we can use a simple byte string for the certificate, but in E2E later we will use real ceritificate signing requests and real certificates.
 
 ## Links
 

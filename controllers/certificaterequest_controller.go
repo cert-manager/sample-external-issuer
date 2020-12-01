@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	sampleissuerapi "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
+	"github.com/cert-manager/sample-external-issuer/internal/issuer/signer"
 	issuerutil "github.com/cert-manager/sample-external-issuer/internal/issuer/util"
 )
 
@@ -40,13 +41,16 @@ var (
 	errIssuerRef      = errors.New("error interpreting issuerRef")
 	errGetIssuer      = errors.New("error getting issuer")
 	errIssuerNotReady = errors.New("issuer is not ready")
+	errSignerBuilder  = errors.New("failed to build the signer")
+	errSignerSign     = errors.New("failed to sign")
 )
 
 // CertificateRequestReconciler reconciles a CertificateRequest object
 type CertificateRequestReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log           logr.Logger
+	Scheme        *runtime.Scheme
+	SignerBuilder signer.SignerBuilder
 }
 
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests,verbs=get;list;watch
@@ -163,6 +167,17 @@ func (r *CertificateRequestReconciler) Reconcile(req ctrl.Request) (result ctrl.
 	if err := r.Get(ctx, secretName, &secret); err != nil {
 		return ctrl.Result{}, fmt.Errorf("%w, secret name: %s, reason: %v", errGetAuthSecret, secretName, err)
 	}
+
+	signer, err := r.SignerBuilder(issuerSpec, secret.Data)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("%w: %v", errSignerBuilder, err)
+	}
+
+	signed, err := signer.Sign(certificateRequest.Spec.Request)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("%w: %v", errSignerSign, err)
+	}
+	certificateRequest.Status.Certificate = signed
 
 	setReadyCondition(cmmeta.ConditionTrue, cmapi.CertificateRequestReasonIssued, "Signed")
 	return ctrl.Result{}, nil

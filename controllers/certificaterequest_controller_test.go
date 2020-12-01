@@ -18,20 +18,32 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	sampleissuerapi "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
+	"github.com/cert-manager/sample-external-issuer/internal/issuer/signer"
 )
+
+type fakeSigner struct {
+	errSign error
+}
+
+func (o *fakeSigner) Sign([]byte) ([]byte, error) {
+	return []byte("fake signed certificate"), o.errSign
+}
 
 func TestCertificateRequestReconcile(t *testing.T) {
 	type testCase struct {
 		name                         types.NamespacedName
 		objects                      []runtime.Object
+		signerBuilder                signer.SignerBuilder
 		expectedResult               ctrl.Result
 		expectedError                error
 		expectedReadyConditionStatus cmmeta.ConditionStatus
 		expectedReadyConditionReason string
+		expectedCertificate          []byte
 	}
 	tests := map[string]testCase{
 		"success": {
@@ -74,8 +86,12 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					},
 				},
 			},
+			signerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.Signer, error) {
+				return &fakeSigner{}, nil
+			},
 			expectedReadyConditionStatus: cmmeta.ConditionTrue,
 			expectedReadyConditionReason: cmapi.CertificateRequestReasonIssued,
+			expectedCertificate:          []byte("fake signed certificate"),
 		},
 		"certificaterequest-not-found": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
@@ -262,6 +278,100 @@ func TestCertificateRequestReconcile(t *testing.T) {
 			expectedReadyConditionStatus: cmmeta.ConditionFalse,
 			expectedReadyConditionReason: cmapi.CertificateRequestReasonPending,
 		},
+		"signer-builder-error": {
+			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
+			objects: []runtime.Object{
+				cmgen.CertificateRequest(
+					"cr1",
+					cmgen.SetCertificateRequestNamespace("ns1"),
+					cmgen.SetCertificateRequestIssuer(cmmeta.ObjectReference{
+						Name:  "issuer1",
+						Group: sampleissuerapi.GroupVersion.Group,
+						Kind:  "Issuer",
+					}),
+					cmgen.SetCertificateRequestStatusCondition(cmapi.CertificateRequestCondition{
+						Type:   cmapi.CertificateRequestConditionReady,
+						Status: cmmeta.ConditionUnknown,
+					}),
+				),
+				&sampleissuerapi.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1",
+						Namespace: "ns1",
+					},
+					Spec: sampleissuerapi.IssuerSpec{
+						AuthSecretName: "issuer1-credentials",
+					},
+					Status: sampleissuerapi.IssuerStatus{
+						Conditions: []sampleissuerapi.IssuerCondition{
+							{
+								Type:   sampleissuerapi.IssuerConditionReady,
+								Status: sampleissuerapi.ConditionTrue,
+							},
+						},
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1-credentials",
+						Namespace: "ns1",
+					},
+				},
+			},
+			signerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.Signer, error) {
+				return nil, errors.New("simulated signer builder error")
+			},
+			expectedError:                errSignerBuilder,
+			expectedReadyConditionStatus: cmmeta.ConditionFalse,
+			expectedReadyConditionReason: cmapi.CertificateRequestReasonPending,
+		},
+		"signer-error": {
+			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
+			objects: []runtime.Object{
+				cmgen.CertificateRequest(
+					"cr1",
+					cmgen.SetCertificateRequestNamespace("ns1"),
+					cmgen.SetCertificateRequestIssuer(cmmeta.ObjectReference{
+						Name:  "issuer1",
+						Group: sampleissuerapi.GroupVersion.Group,
+						Kind:  "Issuer",
+					}),
+					cmgen.SetCertificateRequestStatusCondition(cmapi.CertificateRequestCondition{
+						Type:   cmapi.CertificateRequestConditionReady,
+						Status: cmmeta.ConditionUnknown,
+					}),
+				),
+				&sampleissuerapi.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1",
+						Namespace: "ns1",
+					},
+					Spec: sampleissuerapi.IssuerSpec{
+						AuthSecretName: "issuer1-credentials",
+					},
+					Status: sampleissuerapi.IssuerStatus{
+						Conditions: []sampleissuerapi.IssuerCondition{
+							{
+								Type:   sampleissuerapi.IssuerConditionReady,
+								Status: sampleissuerapi.ConditionTrue,
+							},
+						},
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1-credentials",
+						Namespace: "ns1",
+					},
+				},
+			},
+			signerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.Signer, error) {
+				return &fakeSigner{errSign: errors.New("simulated sign error")}, nil
+			},
+			expectedError:                errSignerSign,
+			expectedReadyConditionStatus: cmmeta.ConditionFalse,
+			expectedReadyConditionReason: cmapi.CertificateRequestReasonPending,
+		},
 	}
 
 	scheme := runtime.NewScheme()
@@ -273,9 +383,10 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fakeClient := fake.NewFakeClientWithScheme(scheme, tc.objects...)
 			controller := CertificateRequestReconciler{
-				Client: fakeClient,
-				Log:    logrtesting.TestLogger{T: t},
-				Scheme: scheme,
+				Client:        fakeClient,
+				Log:           logrtesting.TestLogger{T: t},
+				Scheme:        scheme,
+				SignerBuilder: tc.signerBuilder,
 			}
 			result, err := controller.Reconcile(reconcile.Request{NamespacedName: tc.name})
 			if tc.expectedError != nil {
@@ -286,10 +397,14 @@ func TestCertificateRequestReconcile(t *testing.T) {
 
 			assert.Equal(t, tc.expectedResult, result, "Unexpected result")
 
-			if tc.expectedReadyConditionStatus != "" {
-				var cr cmapi.CertificateRequest
-				require.NoError(t, fakeClient.Get(context.TODO(), tc.name, &cr))
-				assertCertificateRequestHasReadyCondition(t, tc.expectedReadyConditionStatus, tc.expectedReadyConditionReason, &cr)
+			var cr cmapi.CertificateRequest
+			err = fakeClient.Get(context.TODO(), tc.name, &cr)
+			require.NoError(t, client.IgnoreNotFound(err), "unexpected error from fake client")
+			if err == nil {
+				if tc.expectedReadyConditionStatus != "" {
+					assertCertificateRequestHasReadyCondition(t, tc.expectedReadyConditionStatus, tc.expectedReadyConditionReason, &cr)
+				}
+				assert.Equal(t, tc.expectedCertificate, cr.Status.Certificate)
 			}
 		})
 	}
