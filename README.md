@@ -362,6 +362,22 @@ And we add a unit-test for this case.
 
 In the unit-tests, we can use a simple byte string for the certificate, but in E2E later we will use real ceritificate signing requests and real certificates.
 
+#### An example signer
+
+For the purposes of this example external issuer,
+we will implement an `exampleSigner` which implements both the `HealthChecker` and the `Signer` interfaces, and
+which signs the CSR using a static in-memory CA certificate.
+
+In `internal/issuer/signer/signer.go` you will see that we:
+decode the supplied CSR bytes,
+and then sign the certificate using some libraries that were copied from the Kubernetes project.
+This simple implementation is just sufficient to allow us (later) to perform some E2E tests with cert-manager.
+
+In your external issuer, this is where you will plug in your CA client library,
+or where you will instantiate an HTTP client and connect to your API.
+
+Notice also that we add two concrete factory functions which are supplied to the `IssuerReconciler` and `CertificateRequestReconciler` in `main.go`.
+
 ## Links
 
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers

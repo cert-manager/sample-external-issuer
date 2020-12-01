@@ -29,6 +29,7 @@ import (
 
 	sampleissuerv1alpha1 "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
 	"github.com/cert-manager/sample-external-issuer/controllers"
+	"github.com/cert-manager/sample-external-issuer/internal/issuer/signer"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -70,9 +71,10 @@ func main() {
 	}
 
 	if err = (&controllers.IssuerReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Issuer"),
-		Scheme: mgr.GetScheme(),
+		Client:               mgr.GetClient(),
+		Log:                  ctrl.Log.WithName("controllers").WithName("Issuer"),
+		Scheme:               mgr.GetScheme(),
+		HealthCheckerBuilder: signer.ExampleHealthCheckerFromIssuerAndSecretData,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Issuer")
 		os.Exit(1)
@@ -87,9 +89,10 @@ func main() {
 	}
 
 	if err = (&controllers.CertificateRequestReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("CertificateRequest"),
-		Scheme: mgr.GetScheme(),
+		Client:        mgr.GetClient(),
+		Log:           ctrl.Log.WithName("controllers").WithName("CertificateRequest"),
+		Scheme:        mgr.GetScheme(),
+		SignerBuilder: signer.ExampleSignerFromIssuerAndSecretData,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CertificateRequest")
 		os.Exit(1)
