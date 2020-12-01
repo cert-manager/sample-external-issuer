@@ -12,6 +12,7 @@ import (
 	cmgen "github.com/jetstack/cert-manager/test/unit/gen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -54,6 +55,9 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Name:      "issuer1",
 						Namespace: "ns1",
 					},
+					Spec: sampleissuerapi.IssuerSpec{
+						AuthSecretName: "issuer1-credentials",
+					},
 					Status: sampleissuerapi.IssuerStatus{
 						Conditions: []sampleissuerapi.IssuerCondition{
 							{
@@ -61,6 +65,12 @@ func TestCertificateRequestReconcile(t *testing.T) {
 								Status: sampleissuerapi.ConditionTrue,
 							},
 						},
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1-credentials",
+						Namespace: "ns1",
 					},
 				},
 			},
@@ -214,11 +224,50 @@ func TestCertificateRequestReconcile(t *testing.T) {
 			expectedReadyConditionStatus: cmmeta.ConditionFalse,
 			expectedReadyConditionReason: cmapi.CertificateRequestReasonPending,
 		},
+		"issuer-secret-not-found": {
+			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
+			objects: []runtime.Object{
+				cmgen.CertificateRequest(
+					"cr1",
+					cmgen.SetCertificateRequestNamespace("ns1"),
+					cmgen.SetCertificateRequestIssuer(cmmeta.ObjectReference{
+						Name:  "issuer1",
+						Group: sampleissuerapi.GroupVersion.Group,
+						Kind:  "Issuer",
+					}),
+					cmgen.SetCertificateRequestStatusCondition(cmapi.CertificateRequestCondition{
+						Type:   cmapi.CertificateRequestConditionReady,
+						Status: cmmeta.ConditionUnknown,
+					}),
+				),
+				&sampleissuerapi.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1",
+						Namespace: "ns1",
+					},
+					Spec: sampleissuerapi.IssuerSpec{
+						AuthSecretName: "issuer1-credentials",
+					},
+					Status: sampleissuerapi.IssuerStatus{
+						Conditions: []sampleissuerapi.IssuerCondition{
+							{
+								Type:   sampleissuerapi.IssuerConditionReady,
+								Status: sampleissuerapi.ConditionTrue,
+							},
+						},
+					},
+				},
+			},
+			expectedError:                errGetAuthSecret,
+			expectedReadyConditionStatus: cmmeta.ConditionFalse,
+			expectedReadyConditionReason: cmapi.CertificateRequestReasonPending,
+		},
 	}
 
 	scheme := runtime.NewScheme()
 	require.NoError(t, sampleissuerapi.AddToScheme(scheme))
 	require.NoError(t, cmapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {

@@ -25,14 +25,14 @@ import (
 	sampleissuerapi "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
 )
 
-func GetStatus(issuer runtime.Object) (*sampleissuerapi.IssuerStatus, error) {
+func GetSpecAndStatus(issuer runtime.Object) (*sampleissuerapi.IssuerSpec, *sampleissuerapi.IssuerStatus, error) {
 	switch t := issuer.(type) {
 	case *sampleissuerapi.Issuer:
-		return &t.Status, nil
+		return &t.Spec, &t.Status, nil
 	case *sampleissuerapi.ClusterIssuer:
-		return &t.Status, nil
+		return &t.Spec, &t.Status, nil
 	default:
-		return nil, fmt.Errorf("not an issuer type: %t", t)
+		return nil, nil, fmt.Errorf("not an issuer type: %t", t)
 	}
 }
 

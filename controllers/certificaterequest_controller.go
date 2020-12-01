@@ -25,6 +25,7 @@ import (
 	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -50,6 +51,7 @@ type CertificateRequestReconciler struct {
 
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 func (r *CertificateRequestReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, err error) {
 	ctx := context.Background()
@@ -142,7 +144,7 @@ func (r *CertificateRequestReconciler) Reconcile(req ctrl.Request) (result ctrl.
 		return ctrl.Result{}, fmt.Errorf("%w: %v", errGetIssuer, err)
 	}
 
-	issuerStatus, err := issuerutil.GetStatus(issuer)
+	issuerSpec, issuerStatus, err := issuerutil.GetSpecAndStatus(issuer)
 	if err != nil {
 		log.Error(err, "Unable to get the IssuerStatus. Ignoring.")
 		setReadyCondition(cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, err.Error())
@@ -151,6 +153,15 @@ func (r *CertificateRequestReconciler) Reconcile(req ctrl.Request) (result ctrl.
 
 	if !issuerutil.IsReady(issuerStatus) {
 		return ctrl.Result{}, errIssuerNotReady
+	}
+
+	secretName := types.NamespacedName{
+		Name:      issuerSpec.AuthSecretName,
+		Namespace: certificateRequest.Namespace,
+	}
+	var secret corev1.Secret
+	if err := r.Get(ctx, secretName, &secret); err != nil {
+		return ctrl.Result{}, fmt.Errorf("%w, secret name: %s, reason: %v", errGetAuthSecret, secretName, err)
 	}
 
 	setReadyCondition(cmmeta.ConditionTrue, cmapi.CertificateRequestReasonIssued, "Signed")

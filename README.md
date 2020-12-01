@@ -298,6 +298,8 @@ This important because the `Secret` may not exist at the time the `Issuer` or `C
 NOTE: Ideally, we would `WATCH` for the particular `Secret` and trigger the reconciliation when it becomes available.
 And that may be a future enhancement to this project.
 
+In the case of the `CertificateRequestReconciler` we need to deal with both `Issuer` and `ClusterIssuer` types,
+so we modify the `issuerutil` function to allow us to extract an `IssuerSpec` from either of those types.
 
 
 ## Links
