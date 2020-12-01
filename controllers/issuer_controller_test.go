@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	logrtesting "github.com/go-logr/logr/testing"
@@ -16,17 +17,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	sampleissuerapi "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
+	"github.com/cert-manager/sample-external-issuer/internal/issuer/signer"
 	issuerutil "github.com/cert-manager/sample-external-issuer/internal/issuer/util"
 )
+
+type fakeHealthChecker struct {
+	errCheck error
+}
+
+func (o *fakeHealthChecker) Check() error {
+	return o.errCheck
+}
 
 func TestIssuerReconcile(t *testing.T) {
 	type testCase struct {
 		name                         types.NamespacedName
 		objects                      []runtime.Object
+		healthCheckerBuilder         signer.HealthCheckerBuilder
 		expectedResult               ctrl.Result
 		expectedError                error
 		expectedReadyConditionStatus sampleissuerapi.ConditionStatus
 	}
+
 	tests := map[string]testCase{
 		"success": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
@@ -55,7 +67,11 @@ func TestIssuerReconcile(t *testing.T) {
 					},
 				},
 			},
+			healthCheckerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.HealthChecker, error) {
+				return &fakeHealthChecker{}, nil
+			},
 			expectedReadyConditionStatus: sampleissuerapi.ConditionTrue,
+			expectedResult:               ctrl.Result{RequeueAfter: defaultHealthCheckInterval},
 		},
 		"issuer-not-found": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
@@ -96,6 +112,72 @@ func TestIssuerReconcile(t *testing.T) {
 			expectedError:                errGetAuthSecret,
 			expectedReadyConditionStatus: sampleissuerapi.ConditionFalse,
 		},
+		"issuer-failing-healthchecker-builder": {
+			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
+			objects: []runtime.Object{
+				&sampleissuerapi.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1",
+						Namespace: "ns1",
+					},
+					Spec: sampleissuerapi.IssuerSpec{
+						AuthSecretName: "issuer1-credentials",
+					},
+					Status: sampleissuerapi.IssuerStatus{
+						Conditions: []sampleissuerapi.IssuerCondition{
+							{
+								Type:   sampleissuerapi.IssuerConditionReady,
+								Status: sampleissuerapi.ConditionUnknown,
+							},
+						},
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1-credentials",
+						Namespace: "ns1",
+					},
+				},
+			},
+			healthCheckerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.HealthChecker, error) {
+				return nil, errors.New("simulated health checker builder error")
+			},
+			expectedError:                errHealthCheckerBuilder,
+			expectedReadyConditionStatus: sampleissuerapi.ConditionFalse,
+		},
+		"issuer-failing-healthchecker-check": {
+			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
+			objects: []runtime.Object{
+				&sampleissuerapi.Issuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1",
+						Namespace: "ns1",
+					},
+					Spec: sampleissuerapi.IssuerSpec{
+						AuthSecretName: "issuer1-credentials",
+					},
+					Status: sampleissuerapi.IssuerStatus{
+						Conditions: []sampleissuerapi.IssuerCondition{
+							{
+								Type:   sampleissuerapi.IssuerConditionReady,
+								Status: sampleissuerapi.ConditionUnknown,
+							},
+						},
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1-credentials",
+						Namespace: "ns1",
+					},
+				},
+			},
+			healthCheckerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.HealthChecker, error) {
+				return &fakeHealthChecker{errCheck: errors.New("simulated health check error")}, nil
+			},
+			expectedError:                errHealthCheckerCheck,
+			expectedReadyConditionStatus: sampleissuerapi.ConditionFalse,
+		},
 	}
 
 	scheme := runtime.NewScheme()
@@ -106,9 +188,10 @@ func TestIssuerReconcile(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fakeClient := fake.NewFakeClientWithScheme(scheme, tc.objects...)
 			controller := IssuerReconciler{
-				Client: fakeClient,
-				Log:    logrtesting.TestLogger{T: t},
-				Scheme: scheme,
+				Client:               fakeClient,
+				Log:                  logrtesting.TestLogger{T: t},
+				Scheme:               scheme,
+				HealthCheckerBuilder: tc.healthCheckerBuilder,
 			}
 			result, err := controller.Reconcile(reconcile.Request{NamespacedName: tc.name})
 			if tc.expectedError != nil {

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -30,22 +31,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	sampleissuerapi "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
+	"github.com/cert-manager/sample-external-issuer/internal/issuer/signer"
 	issuerutil "github.com/cert-manager/sample-external-issuer/internal/issuer/util"
 )
 
 const (
 	issuerReadyConditionReason = "sample-issuer.IssuerController.Reconcile"
+	defaultHealthCheckInterval = time.Minute
 )
 
 var (
-	errGetAuthSecret = errors.New("failed to get Secret containing Issuer credentials")
+	errGetAuthSecret        = errors.New("failed to get Secret containing Issuer credentials")
+	errHealthCheckerBuilder = errors.New("failed to build the healthchecker")
+	errHealthCheckerCheck   = errors.New("healthcheck failed")
 )
 
 // IssuerReconciler reconciles a Issuer object
 type IssuerReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log                  logr.Logger
+	Scheme               *runtime.Scheme
+	HealthCheckerBuilder signer.HealthCheckerBuilder
 }
 
 // +kubebuilder:rbac:groups=sample-issuer.example.com,resources=issuers,verbs=get;list;watch
@@ -91,8 +97,17 @@ func (r *IssuerReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, err 
 		return ctrl.Result{}, fmt.Errorf("%w, secret name: %s, reason: %v", errGetAuthSecret, secretName, err)
 	}
 
+	checker, err := r.HealthCheckerBuilder(&issuer.Spec, secret.Data)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("%w: %v", errHealthCheckerBuilder, err)
+	}
+
+	if err := checker.Check(); err != nil {
+		return ctrl.Result{}, fmt.Errorf("%w: %v", errHealthCheckerCheck, err)
+	}
+
 	issuerutil.SetReadyCondition(&issuer.Status, sampleissuerapi.ConditionTrue, issuerReadyConditionReason, "Success")
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: defaultHealthCheckInterval}, nil
 }
 
 func (r *IssuerReconciler) SetupWithManager(mgr ctrl.Manager) error {

@@ -302,6 +302,43 @@ In the case of the `CertificateRequestReconciler` we need to deal with both `Iss
 so we modify the `issuerutil` function to allow us to extract an `IssuerSpec` from either of those types.
 
 
+#### Issuer health checks
+
+An issuer that connects to a certificate authority API may want to perform periodic health checks and sanity checks,
+to ensure that the API server is responding and if not,
+to set update the `Ready` condition of the `Issuer` to false, and log a meaningful error message with the condition.
+This will give early warning of problems with the configuration or with the API,
+rather than waiting a for `CertificateRequest` to fail before being alerted to the problem.
+
+Start with an `Interface` describing the health check operation.
+For example:
+
+```
+type HealthChecker interface {
+    Check() error
+}
+```
+
+We don't need to implement it yet,
+we just need to plug that into the `IssuerReconciler` and add a fake implementation to the tests
+so that we can check how the reconciler behaves when the health checks fail.
+
+And since we can't know the `Issuer` configuration or credentials until we begin reconciling,
+we need to describe a constructor function type which can build a `HealthChecker` from an `IssuerSpec`  and some `Secret` data.
+
+```
+ type HealthCheckerBuilder func(*sampleissuerapi.IssuerSpec, map[string][]byte) (HealthChecker, error)
+```
+
+This will be supplied as an `IssuerReconciler` field, and can be easily faked in the unit-tests.
+
+And finally, since we want the health checks to be performed periodically,
+we need to make controller-runtime retry reconciling regularly, even when the current reconcile succeeds.
+We do this by setting the `Result.RequeueAfter` field of the returned result.
+
+
+
+
 ## Links
 
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers
