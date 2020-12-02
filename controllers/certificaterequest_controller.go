@@ -48,9 +48,10 @@ var (
 // CertificateRequestReconciler reconciles a CertificateRequest object
 type CertificateRequestReconciler struct {
 	client.Client
-	Log           logr.Logger
-	Scheme        *runtime.Scheme
-	SignerBuilder signer.SignerBuilder
+	Log                      logr.Logger
+	Scheme                   *runtime.Scheme
+	SignerBuilder            signer.SignerBuilder
+	ClusterResourceNamespace string
 }
 
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests,verbs=get;list;watch
@@ -130,11 +131,14 @@ func (r *CertificateRequestReconciler) Reconcile(req ctrl.Request) (result ctrl.
 	issuerName := types.NamespacedName{
 		Name: certificateRequest.Spec.IssuerRef.Name,
 	}
+	var secretNamespace string
 	switch t := issuer.(type) {
 	case *sampleissuerapi.Issuer:
 		issuerName.Namespace = certificateRequest.Namespace
+		secretNamespace = certificateRequest.Namespace
 		log = log.WithValues("issuer", issuerName)
 	case *sampleissuerapi.ClusterIssuer:
+		secretNamespace = r.ClusterResourceNamespace
 		log = log.WithValues("clusterissuer", issuerName)
 	default:
 		err := fmt.Errorf("unexpected issuer type: %v", t)
@@ -161,8 +165,9 @@ func (r *CertificateRequestReconciler) Reconcile(req ctrl.Request) (result ctrl.
 
 	secretName := types.NamespacedName{
 		Name:      issuerSpec.AuthSecretName,
-		Namespace: certificateRequest.Namespace,
+		Namespace: secretNamespace,
 	}
+
 	var secret corev1.Secret
 	if err := r.Get(ctx, secretName, &secret); err != nil {
 		return ctrl.Result{}, fmt.Errorf("%w, secret name: %s, reason: %v", errGetAuthSecret, secretName, err)

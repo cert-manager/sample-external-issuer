@@ -378,6 +378,20 @@ or where you will instantiate an HTTP client and connect to your API.
 
 Notice also that we add two concrete factory functions which are supplied to the `IssuerReconciler` and `CertificateRequestReconciler` in `main.go`.
 
+#### What about the ClusterIssuerReconciler?
+
+We have so far abandoned development of the `ClusterIssuerReconciler`, and that's because we want to re-use the `IssuerReconciler` rather than duplicating everything.
+
+So here we delete the skaffolded `controllers/clusterissuer_controller.go` and update the `issuer_controller.go` to handle both types.
+
+As well as juggling the code to handle both types, we:
+aggregate the Kubebuilder RBAC annotations, and
+add a new command line flag which allows us to set a `--cluster-resource-namespace`.
+
+The `--cluster-resource-namespace` is the namespace where the issuer will look for `Secret` resources referred to by a `ClusterIssuer`,
+since `ClusterIssuer` is cluster-scoped.
+The default value of the flag is the namespace where the issuer is running in the cluster.
+
 ## Links
 
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers

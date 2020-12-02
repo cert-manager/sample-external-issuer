@@ -39,6 +39,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		name                         types.NamespacedName
 		objects                      []runtime.Object
 		signerBuilder                signer.SignerBuilder
+		clusterResourceNamespace     string
 		expectedResult               ctrl.Result
 		expectedError                error
 		expectedReadyConditionStatus cmmeta.ConditionStatus
@@ -46,7 +47,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		expectedCertificate          []byte
 	}
 	tests := map[string]testCase{
-		"success": {
+		"success-issuer": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
 			objects: []runtime.Object{
 				cmgen.CertificateRequest(
@@ -89,6 +90,53 @@ func TestCertificateRequestReconcile(t *testing.T) {
 			signerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.Signer, error) {
 				return &fakeSigner{}, nil
 			},
+			expectedReadyConditionStatus: cmmeta.ConditionTrue,
+			expectedReadyConditionReason: cmapi.CertificateRequestReasonIssued,
+			expectedCertificate:          []byte("fake signed certificate"),
+		},
+		"success-cluster-issuer": {
+			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
+			objects: []runtime.Object{
+				cmgen.CertificateRequest(
+					"cr1",
+					cmgen.SetCertificateRequestNamespace("ns1"),
+					cmgen.SetCertificateRequestIssuer(cmmeta.ObjectReference{
+						Name:  "clusterissuer1",
+						Group: sampleissuerapi.GroupVersion.Group,
+						Kind:  "ClusterIssuer",
+					}),
+					cmgen.SetCertificateRequestStatusCondition(cmapi.CertificateRequestCondition{
+						Type:   cmapi.CertificateRequestConditionReady,
+						Status: cmmeta.ConditionUnknown,
+					}),
+				),
+				&sampleissuerapi.ClusterIssuer{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "clusterissuer1",
+					},
+					Spec: sampleissuerapi.IssuerSpec{
+						AuthSecretName: "clusterissuer1-credentials",
+					},
+					Status: sampleissuerapi.IssuerStatus{
+						Conditions: []sampleissuerapi.IssuerCondition{
+							{
+								Type:   sampleissuerapi.IssuerConditionReady,
+								Status: sampleissuerapi.ConditionTrue,
+							},
+						},
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "clusterissuer1-credentials",
+						Namespace: "kube-system",
+					},
+				},
+			},
+			signerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.Signer, error) {
+				return &fakeSigner{}, nil
+			},
+			clusterResourceNamespace:     "kube-system",
 			expectedReadyConditionStatus: cmmeta.ConditionTrue,
 			expectedReadyConditionReason: cmapi.CertificateRequestReasonIssued,
 			expectedCertificate:          []byte("fake signed certificate"),
@@ -383,10 +431,11 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fakeClient := fake.NewFakeClientWithScheme(scheme, tc.objects...)
 			controller := CertificateRequestReconciler{
-				Client:        fakeClient,
-				Log:           logrtesting.TestLogger{T: t},
-				Scheme:        scheme,
-				SignerBuilder: tc.signerBuilder,
+				Client:                   fakeClient,
+				Log:                      logrtesting.TestLogger{T: t},
+				Scheme:                   scheme,
+				ClusterResourceNamespace: tc.clusterResourceNamespace,
+				SignerBuilder:            tc.signerBuilder,
 			}
 			result, err := controller.Reconcile(reconcile.Request{NamespacedName: tc.name})
 			if tc.expectedError != nil {
