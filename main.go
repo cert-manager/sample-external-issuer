@@ -33,6 +33,7 @@ import (
 	sampleissuerv1alpha1 "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
 	"github.com/cert-manager/sample-external-issuer/controllers"
 	"github.com/cert-manager/sample-external-issuer/internal/issuer/signer"
+	"github.com/cert-manager/sample-external-issuer/internal/version"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -56,17 +57,24 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var clusterResourceNamespace string
+	var printVersion bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&clusterResourceNamespace, "cluster-resource-namespace", "", "The namespace for secrets in which cluster-scoped resources are found.")
+	flag.BoolVar(&printVersion, "version", false, "Print version to stdout and exit")
 
 	// Options for configuring logging
 	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
 
 	flag.Parse()
+
+	if printVersion {
+		fmt.Println(version.Version)
+		return
+	}
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
@@ -85,6 +93,7 @@ func main() {
 
 	setupLog.Info(
 		"starting",
+		"version", version.Version,
 		"enable-leader-election", enableLeaderElection,
 		"metrics-addr", metricsAddr,
 		"cluster-resource-namespace", clusterResourceNamespace,

@@ -4,8 +4,12 @@ SHELL := bash
 .DELETE_ON_ERROR:
 .SUFFIXES:
 
+# The version which will be reported by the --version argument of each binary
+# and which will be used as the Docker image tag
+VERSION ?= $(shell git describe --tags)
+
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= controller:${VERSION}
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -75,7 +79,11 @@ generate: controller-gen
 
 # Build the docker image
 docker-build:
-	docker build . -t ${IMG}
+	docker build \
+		--build-arg VERSION=$(VERSION) \
+		--tag ${IMG} \
+		--file Dockerfile \
+		${CURDIR}
 
 # Push the docker image
 docker-push:
