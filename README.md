@@ -2,6 +2,14 @@
 
 This is an example of an [External Issuer] for cert-manager.
 
+## Demo
+
+You can run the sample-external-issuer on a local cluster with this command:
+
+```
+make IMG=controller:0.0.0 kind-cluster deploy-cert-manager docker-build kind-load deploy e2e
+```
+
 ## How to write your own external issuer
 
 If you are writing an external issuer you may find it helpful to review the code and the commits in this repository
@@ -391,6 +399,27 @@ add a new command line flag which allows us to set a `--cluster-resource-namespa
 The `--cluster-resource-namespace` is the namespace where the issuer will look for `Secret` resources referred to by a `ClusterIssuer`,
 since `ClusterIssuer` is cluster-scoped.
 The default value of the flag is the namespace where the issuer is running in the cluster.
+
+#### End-to-end tests
+
+Now our issuer is almost feature complete and it should be possible to write an end-to-end test that
+deploys a cert-manager `Certificate`
+referring to an external `Issuer` and check that a signed `Certificate` is saved to the expected secret.
+
+We can make such a test easier by tidying up the `Makefile` and adding some new targets
+which will help create a test cluster and to help install cert-manager.
+
+We can write a simple end-to-end test which deploys a `Certificate` manifest and waits for it to be ready.
+
+```
+kubectl apply --filename config/samples
+kubectl wait --for=condition=Ready --timeout=5s issuers.sample-issuer.example.com issuer-sample
+kubectl wait --for=condition=Ready --timeout=5s  certificates.cert-manager.io certificate-by-issuer
+```
+
+You can of course write more complete tests than this,
+but this is a good start and demonstrates that the issuer is doing what we hoped it would do.
+
 
 ## Links
 

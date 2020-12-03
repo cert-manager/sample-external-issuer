@@ -1,3 +1,8 @@
+MAKEFLAGS += --warn-undefined-variables
+SHELL := bash
+.SHELLFLAGS := -eu -o pipefail -c
+.DELETE_ON_ERROR:
+.SUFFIXES:
 
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
@@ -10,6 +15,20 @@ GOBIN=$(shell go env GOPATH)/bin
 else
 GOBIN=$(shell go env GOBIN)
 endif
+
+# BIN is the directory where tools will be installed
+export BIN ?= ${CURDIR}/bin
+
+OS := $(shell go env GOOS)
+ARCH := $(shell go env GOARCH)
+
+# Kind
+KIND_VERSION := 0.9.0
+KIND := ${BIN}/kind-${KIND_VERSION}
+K8S_CLUSTER_NAME := sample-external-issuer-e2e
+
+# cert-manager
+CERT_MANAGER_VERSION ?= 1.0.4
 
 all: manager
 
@@ -34,7 +53,7 @@ uninstall: manifests
 	kustomize build config/crd | kubectl delete -f -
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
+deploy:
 	cd config/manager && kustomize edit set image controller=${IMG}
 	kustomize build config/default | kubectl apply -f -
 
@@ -55,7 +74,7 @@ generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
-docker-build: test
+docker-build:
 	docker build . -t ${IMG}
 
 # Push the docker image
@@ -78,3 +97,48 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+# ==================================
+# E2E testing
+# ==================================
+.PHONY: kind-cluster
+kind-cluster: ## Use Kind to create a Kubernetes cluster for E2E tests
+kind-cluster: ${KIND}
+	 ${KIND} get clusters | grep ${K8S_CLUSTER_NAME} || ${KIND} create cluster --name ${K8S_CLUSTER_NAME}
+
+.PHONY: kind-load
+kind-load: ## Load all the Docker images into Kind
+	${KIND} load docker-image --name ${K8S_CLUSTER_NAME} ${IMG}
+
+.PHONY: kind-export-logs
+kind-export-logs:
+	${KIND} export logs --name ${K8S_CLUSTER_NAME} ${E2E_ARTIFACTS_DIRECTORY}
+
+
+.PHONY: deploy-cert-manager
+deploy-cert-manager: ## Deploy cert-manager in the configured Kubernetes cluster in ~/.kube/config
+	kubectl apply --filename=https://github.com/jetstack/cert-manager/releases/download/v${CERT_MANAGER_VERSION}/cert-manager.yaml
+	kubectl wait --for=condition=Available --timeout=300s apiservice v1.cert-manager.io
+
+e2e:
+	kubectl apply --filename config/samples
+
+	kubectl wait --for=condition=Ready --timeout=5s issuers.sample-issuer.example.com issuer-sample
+	kubectl wait --for=condition=Ready --timeout=5s  certificaterequests.cert-manager.io issuer-sample
+	kubectl wait --for=condition=Ready --timeout=5s  certificates.cert-manager.io certificate-by-issuer
+
+	kubectl wait --for=condition=Ready --timeout=5s clusterissuers.sample-issuer.example.com clusterissuer-sample
+	kubectl wait --for=condition=Ready --timeout=5s  certificaterequests.cert-manager.io clusterissuer-sample
+	kubectl wait --for=condition=Ready --timeout=5s  certificates.cert-manager.io certificate-by-clusterissuer
+
+	kubectl delete --filename config/samples
+
+# ==================================
+# Download: tools in ${BIN}
+# ==================================
+${BIN}:
+	mkdir -p ${BIN}
+
+${KIND}: ${BIN}
+	curl -sSL -o ${KIND} https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VERSION}/kind-${OS}-${ARCH}
+	chmod +x ${KIND}
