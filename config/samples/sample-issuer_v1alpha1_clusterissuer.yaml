@@ -1,0 +1,7 @@
+apiVersion: sample-issuer.example.com/v1alpha1
+kind: ClusterIssuer
+metadata:
+  name: clusterissuer-sample
+spec:
+  authSecretName: "clusterissuer-sample-credentials"
+  url: "http://sample-issuer.example.com/api/v1"

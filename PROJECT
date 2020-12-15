@@ -1,0 +1,10 @@
+domain: example.com
+repo: github.com/cert-manager/sample-external-issuer
+resources:
+- group: sample-issuer
+  kind: Issuer
+  version: v1alpha1
+- group: sample-issuer
+  kind: ClusterIssuer
+  version: v1alpha1
+version: "2"

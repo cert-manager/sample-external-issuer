@@ -1,0 +1,7 @@
+apiVersion: sample-issuer.example.com/v1alpha1
+kind: Issuer
+metadata:
+  name: issuer-sample
+spec:
+  authSecretName: "issuer-sample-credentials"
+  url: "http://sample-issuer.example.com/api/v1"
