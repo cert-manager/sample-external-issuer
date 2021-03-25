@@ -1,0 +1,14 @@
+# permissions to approve all sample-issuer.example.com requests
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cert-manager-controller-approve:sample-issuer-example-com
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - signers
+  verbs:
+  - approve
+  resourceNames:
+  - issuers.sample-issuer.example.com/*
+  - clusterissuers.sample-issuer.example.com/*
