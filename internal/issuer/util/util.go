@@ -20,12 +20,12 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	sampleissuerapi "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
 )
 
-func GetSpecAndStatus(issuer runtime.Object) (*sampleissuerapi.IssuerSpec, *sampleissuerapi.IssuerStatus, error) {
+func GetSpecAndStatus(issuer client.Object) (*sampleissuerapi.IssuerSpec, *sampleissuerapi.IssuerStatus, error) {
 	switch t := issuer.(type) {
 	case *sampleissuerapi.Issuer:
 		return &t.Spec, &t.Status, nil

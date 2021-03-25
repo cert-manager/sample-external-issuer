@@ -60,9 +60,13 @@ type IssuerReconciler struct {
 // +kubebuilder:rbac:groups=sample-issuer.example.com,resources=issuers/status;clusterissuers/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
-func (r *IssuerReconciler) newIssuer() (runtime.Object, error) {
+func (r *IssuerReconciler) newIssuer() (client.Object, error) {
 	issuerGVK := sampleissuerapi.GroupVersion.WithKind(r.Kind)
-	return r.Scheme.New(issuerGVK)
+	ro, err := r.Scheme.New(issuerGVK)
+	if err != nil {
+		return nil, err
+	}
+	return ro.(client.Object), nil
 }
 
 func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
@@ -73,7 +77,6 @@ func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 		log.Error(err, "Unrecognised issuer type")
 		return ctrl.Result{}, nil
 	}
-
 	if err := r.Get(ctx, req.NamespacedName, issuer); err != nil {
 		if err := client.IgnoreNotFound(err); err != nil {
 			return ctrl.Result{}, fmt.Errorf("unexpected get error: %v", err)

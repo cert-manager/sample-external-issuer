@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -33,7 +34,7 @@ func TestIssuerReconcile(t *testing.T) {
 	type testCase struct {
 		kind                         string
 		name                         types.NamespacedName
-		objects                      []runtime.Object
+		objects                      []client.Object
 		healthCheckerBuilder         signer.HealthCheckerBuilder
 		clusterResourceNamespace     string
 		expectedResult               ctrl.Result
@@ -45,7 +46,7 @@ func TestIssuerReconcile(t *testing.T) {
 		"success-issuer": {
 			kind: "Issuer",
 			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -79,7 +80,7 @@ func TestIssuerReconcile(t *testing.T) {
 		"success-clusterissuer": {
 			kind: "ClusterIssuer",
 			name: types.NamespacedName{Name: "clusterissuer1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				&sampleissuerapi.ClusterIssuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "clusterissuer1",
@@ -119,7 +120,7 @@ func TestIssuerReconcile(t *testing.T) {
 		},
 		"issuer-missing-ready-condition": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -131,7 +132,7 @@ func TestIssuerReconcile(t *testing.T) {
 		},
 		"issuer-missing-secret": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -155,7 +156,7 @@ func TestIssuerReconcile(t *testing.T) {
 		},
 		"issuer-failing-healthchecker-builder": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -188,7 +189,7 @@ func TestIssuerReconcile(t *testing.T) {
 		},
 		"issuer-failing-healthchecker-check": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -227,7 +228,10 @@ func TestIssuerReconcile(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			fakeClient := fake.NewFakeClientWithScheme(scheme, tc.objects...)
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(tc.objects...).
+				Build()
 			if tc.kind == "" {
 				tc.kind = "Issuer"
 			}

@@ -37,7 +37,7 @@ func (o *fakeSigner) Sign([]byte) ([]byte, error) {
 func TestCertificateRequestReconcile(t *testing.T) {
 	type testCase struct {
 		name                         types.NamespacedName
-		objects                      []runtime.Object
+		objects                      []client.Object
 		signerBuilder                signer.SignerBuilder
 		clusterResourceNamespace     string
 		expectedResult               ctrl.Result
@@ -49,7 +49,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 	tests := map[string]testCase{
 		"success-issuer": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -96,7 +96,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"success-cluster-issuer": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -146,7 +146,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"issuer-ref-foreign-group": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -159,7 +159,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"certificaterequest-already-ready": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -177,7 +177,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"certificaterequest-missing-ready-condition": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -193,7 +193,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"issuer-ref-unknown-kind": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -213,7 +213,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"issuer-not-found": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -234,7 +234,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"clusterissuer-not-found": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -255,7 +255,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"issuer-not-ready": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -290,7 +290,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"issuer-secret-not-found": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -328,7 +328,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"signer-builder-error": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -375,7 +375,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"signer-error": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []runtime.Object{
+			objects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -429,7 +429,10 @@ func TestCertificateRequestReconcile(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			fakeClient := fake.NewFakeClientWithScheme(scheme, tc.objects...)
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(tc.objects...).
+				Build()
 			controller := CertificateRequestReconciler{
 				Client:                   fakeClient,
 				Log:                      logrtesting.TestLogger{T: t},

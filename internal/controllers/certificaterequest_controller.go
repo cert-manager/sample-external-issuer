@@ -118,14 +118,14 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// Ignore but log an error if the issuerRef.Kind is unrecognised
 	issuerGVK := sampleissuerapi.GroupVersion.WithKind(certificateRequest.Spec.IssuerRef.Kind)
-	issuer, err := r.Scheme.New(issuerGVK)
+	issuerRO, err := r.Scheme.New(issuerGVK)
 	if err != nil {
 		err = fmt.Errorf("%w: %v", errIssuerRef, err)
 		log.Error(err, "Unrecognised kind. Ignoring.")
 		setReadyCondition(cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, err.Error())
 		return ctrl.Result{}, nil
 	}
-
+	issuer := issuerRO.(client.Object)
 	// Create a Namespaced name for Issuer and a non-Namespaced name for ClusterIssuer
 	issuerName := types.NamespacedName{
 		Name: certificateRequest.Spec.IssuerRef.Name,
