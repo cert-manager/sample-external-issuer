@@ -65,8 +65,7 @@ func (r *IssuerReconciler) newIssuer() (runtime.Object, error) {
 	return r.Scheme.New(issuerGVK)
 }
 
-func (r *IssuerReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, err error) {
-	ctx := context.Background()
+func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 	log := r.Log.WithValues("issuer", req.NamespacedName)
 
 	issuer, err := r.newIssuer()

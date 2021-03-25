@@ -437,7 +437,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 				ClusterResourceNamespace: tc.clusterResourceNamespace,
 				SignerBuilder:            tc.signerBuilder,
 			}
-			result, err := controller.Reconcile(reconcile.Request{NamespacedName: tc.name})
+			result, err := controller.Reconcile(context.TODO(), reconcile.Request{NamespacedName: tc.name})
 			if tc.expectedError != nil {
 				assertErrorIs(t, tc.expectedError, err)
 			} else {
