@@ -238,12 +238,14 @@ func TestIssuerReconcile(t *testing.T) {
 			controller := IssuerReconciler{
 				Kind:                     tc.kind,
 				Client:                   fakeClient,
-				Log:                      logrtesting.TestLogger{T: t},
 				Scheme:                   scheme,
 				HealthCheckerBuilder:     tc.healthCheckerBuilder,
 				ClusterResourceNamespace: tc.clusterResourceNamespace,
 			}
-			result, err := controller.Reconcile(context.TODO(), reconcile.Request{NamespacedName: tc.name})
+			result, err := controller.Reconcile(
+				ctrl.LoggerInto(context.TODO(), &logrtesting.TestLogger{T: t}),
+				reconcile.Request{NamespacedName: tc.name},
+			)
 			if tc.expectedError != nil {
 				assertErrorIs(t, tc.expectedError, err)
 			} else {

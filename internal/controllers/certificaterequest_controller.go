@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
@@ -48,7 +47,6 @@ var (
 // CertificateRequestReconciler reconciles a CertificateRequest object
 type CertificateRequestReconciler struct {
 	client.Client
-	Log                      logr.Logger
 	Scheme                   *runtime.Scheme
 	SignerBuilder            signer.SignerBuilder
 	ClusterResourceNamespace string
@@ -59,7 +57,7 @@ type CertificateRequestReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
-	log := r.Log.WithValues("certificaterequest", req.NamespacedName)
+	log := ctrl.LoggerFrom(ctx)
 
 	// Get the CertificateRequest
 	var certificateRequest cmapi.CertificateRequest

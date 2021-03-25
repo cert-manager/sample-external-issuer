@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -50,7 +49,6 @@ var (
 type IssuerReconciler struct {
 	client.Client
 	Kind                     string
-	Log                      logr.Logger
 	Scheme                   *runtime.Scheme
 	ClusterResourceNamespace string
 	HealthCheckerBuilder     signer.HealthCheckerBuilder
@@ -70,7 +68,7 @@ func (r *IssuerReconciler) newIssuer() (client.Object, error) {
 }
 
 func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
-	log := r.Log.WithValues("issuer", req.NamespacedName)
+	log := ctrl.LoggerFrom(ctx)
 
 	issuer, err := r.newIssuer()
 	if err != nil {

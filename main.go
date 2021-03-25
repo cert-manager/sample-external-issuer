@@ -114,7 +114,6 @@ func main() {
 	if err = (&controllers.IssuerReconciler{
 		Kind:                     "Issuer",
 		Client:                   mgr.GetClient(),
-		Log:                      ctrl.Log.WithName("controllers").WithName("Issuer"),
 		Scheme:                   mgr.GetScheme(),
 		ClusterResourceNamespace: clusterResourceNamespace,
 		HealthCheckerBuilder:     signer.ExampleHealthCheckerFromIssuerAndSecretData,
@@ -125,7 +124,6 @@ func main() {
 	if err = (&controllers.IssuerReconciler{
 		Kind:                     "ClusterIssuer",
 		Client:                   mgr.GetClient(),
-		Log:                      ctrl.Log.WithName("controllers").WithName("ClusterIssuer"),
 		Scheme:                   mgr.GetScheme(),
 		ClusterResourceNamespace: clusterResourceNamespace,
 		HealthCheckerBuilder:     signer.ExampleHealthCheckerFromIssuerAndSecretData,
@@ -136,7 +134,6 @@ func main() {
 
 	if err = (&controllers.CertificateRequestReconciler{
 		Client:                   mgr.GetClient(),
-		Log:                      ctrl.Log.WithName("controllers").WithName("CertificateRequest"),
 		Scheme:                   mgr.GetScheme(),
 		ClusterResourceNamespace: clusterResourceNamespace,
 		SignerBuilder:            signer.ExampleSignerFromIssuerAndSecretData,
