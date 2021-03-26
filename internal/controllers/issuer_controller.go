@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -50,7 +49,6 @@ var (
 type IssuerReconciler struct {
 	client.Client
 	Kind                     string
-	Log                      logr.Logger
 	Scheme                   *runtime.Scheme
 	ClusterResourceNamespace string
 	HealthCheckerBuilder     signer.HealthCheckerBuilder
@@ -60,21 +58,23 @@ type IssuerReconciler struct {
 // +kubebuilder:rbac:groups=sample-issuer.example.com,resources=issuers/status;clusterissuers/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
-func (r *IssuerReconciler) newIssuer() (runtime.Object, error) {
+func (r *IssuerReconciler) newIssuer() (client.Object, error) {
 	issuerGVK := sampleissuerapi.GroupVersion.WithKind(r.Kind)
-	return r.Scheme.New(issuerGVK)
+	ro, err := r.Scheme.New(issuerGVK)
+	if err != nil {
+		return nil, err
+	}
+	return ro.(client.Object), nil
 }
 
-func (r *IssuerReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, err error) {
-	ctx := context.Background()
-	log := r.Log.WithValues("issuer", req.NamespacedName)
+func (r *IssuerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
+	log := ctrl.LoggerFrom(ctx)
 
 	issuer, err := r.newIssuer()
 	if err != nil {
 		log.Error(err, "Unrecognised issuer type")
 		return ctrl.Result{}, nil
 	}
-
 	if err := r.Get(ctx, req.NamespacedName, issuer); err != nil {
 		if err := client.IgnoreNotFound(err); err != nil {
 			return ctrl.Result{}, fmt.Errorf("unexpected get error: %v", err)

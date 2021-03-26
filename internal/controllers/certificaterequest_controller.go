@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
@@ -48,7 +47,6 @@ var (
 // CertificateRequestReconciler reconciles a CertificateRequest object
 type CertificateRequestReconciler struct {
 	client.Client
-	Log                      logr.Logger
 	Scheme                   *runtime.Scheme
 	SignerBuilder            signer.SignerBuilder
 	ClusterResourceNamespace string
@@ -58,9 +56,8 @@ type CertificateRequestReconciler struct {
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
-func (r *CertificateRequestReconciler) Reconcile(req ctrl.Request) (result ctrl.Result, err error) {
-	ctx := context.Background()
-	log := r.Log.WithValues("certificaterequest", req.NamespacedName)
+func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
+	log := ctrl.LoggerFrom(ctx)
 
 	// Get the CertificateRequest
 	var certificateRequest cmapi.CertificateRequest
@@ -119,14 +116,14 @@ func (r *CertificateRequestReconciler) Reconcile(req ctrl.Request) (result ctrl.
 
 	// Ignore but log an error if the issuerRef.Kind is unrecognised
 	issuerGVK := sampleissuerapi.GroupVersion.WithKind(certificateRequest.Spec.IssuerRef.Kind)
-	issuer, err := r.Scheme.New(issuerGVK)
+	issuerRO, err := r.Scheme.New(issuerGVK)
 	if err != nil {
 		err = fmt.Errorf("%w: %v", errIssuerRef, err)
 		log.Error(err, "Unrecognised kind. Ignoring.")
 		setReadyCondition(cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, err.Error())
 		return ctrl.Result{}, nil
 	}
-
+	issuer := issuerRO.(client.Object)
 	// Create a Namespaced name for Issuer and a non-Namespaced name for ClusterIssuer
 	issuerName := types.NamespacedName{
 		Name: certificateRequest.Spec.IssuerRef.Name,
