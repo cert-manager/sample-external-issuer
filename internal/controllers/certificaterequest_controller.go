@@ -75,6 +75,12 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
+	// If CertificateRequest has not been approved or is denied, exit early.
+	if !cmutil.CertificateRequestIsApproved(&certificateRequest) || cmutil.CertificateRequestIsDenied(&certificateRequest) {
+		log.Info("certificate request has not been approved")
+		return ctrl.Result{}, nil
+	}
+
 	// Ignore CertificateRequest if it is already Ready
 	if cmutil.CertificateRequestHasCondition(&certificateRequest, cmapi.CertificateRequestCondition{
 		Type:   cmapi.CertificateRequestConditionReady,
