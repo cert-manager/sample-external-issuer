@@ -227,6 +227,21 @@ This later will allow us to easily handle both `Issuer` and `ClusterIssuer` refe
 
 If there is a mismatch in the `IssuerRef` we ignore the `CertificateRequest`.
 
+#### Check that the CertificateRequest is Approved
+
+Issuers must only sign `Approved` `CertificateRequest` resources.
+If the `CertificateRequest` is not `Approved`, the issuer should not process it.
+Issuers are not responsible for approving `CertificateRequests`.
+You can read more about the [CertificateRequest Approval API][] in the cert-manager documentation.
+
+[CertificateRequest Approval API]: https://cert-manager.io/docs/concepts/certificaterequest/#approval
+
+Adjust your `CertificateRequest` controller and the accompanying unit tests
+to ignore `CertificateRequest` resources if they are `Denied` or if they are not `Approved`.
+Use the [cert-manager API utility package][] which contains functions for checking the `Approved` and `Denied` conditions of a `CertificateRequest`.
+
+[cert-manager API utility package]: https://pkg.go.dev/github.com/jetstack/cert-manager@v1.3.0/pkg/api/util#CertificateRequestIsApproved
+
 #### Set the CertificateRequest Ready condition
 
 The [External Issuer] documentation says the following:
