@@ -50,6 +50,7 @@ type CertificateRequestReconciler struct {
 	Scheme                   *runtime.Scheme
 	SignerBuilder            signer.SignerBuilder
 	ClusterResourceNamespace string
+	CheckApprovedCondition   bool
 }
 
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests,verbs=get;list;watch
@@ -75,10 +76,12 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	// If CertificateRequest has not been approved or is denied, exit early.
-	if !cmutil.CertificateRequestIsApproved(&certificateRequest) || cmutil.CertificateRequestIsDenied(&certificateRequest) {
-		log.Info("certificate request has not been approved")
-		return ctrl.Result{}, nil
+	if r.CheckApprovedCondition {
+		// If CertificateRequest has not been approved or is denied, exit early.
+		if !cmutil.CertificateRequestIsApproved(&certificateRequest) || cmutil.CertificateRequestIsDenied(&certificateRequest) {
+			log.Info("certificate request has not been approved")
+			return ctrl.Result{}, nil
+		}
 	}
 
 	// Ignore CertificateRequest if it is already Ready

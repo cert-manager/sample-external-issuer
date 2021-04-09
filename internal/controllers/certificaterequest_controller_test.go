@@ -576,6 +576,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 				Scheme:                   scheme,
 				ClusterResourceNamespace: tc.clusterResourceNamespace,
 				SignerBuilder:            tc.signerBuilder,
+				CheckApprovedCondition:   true,
 			}
 			result, err := controller.Reconcile(
 				ctrl.LoggerInto(context.TODO(), &logrtesting.TestLogger{T: t}),

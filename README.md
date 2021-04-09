@@ -242,6 +242,9 @@ Use the [cert-manager API utility package][] which contains functions for checki
 
 [cert-manager API utility package]: https://pkg.go.dev/github.com/jetstack/cert-manager@v1.3.0/pkg/api/util#CertificateRequestIsApproved
 
+If using an older version of cert-manager (pre v1.3), you can disable this check
+by supplying the command line flag `-disable-approved-check` to the Deployment.
+
 #### Set the CertificateRequest Ready condition
 
 The [External Issuer] documentation says the following:
