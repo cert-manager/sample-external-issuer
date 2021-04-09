@@ -1,0 +1,39 @@
+name: release
+on:
+  release:
+    types: [published]
+jobs:
+  build_push_and_publish:
+    runs-on: ubuntu-20.04
+    steps:
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      -
+        name: Log in to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Build Docker image
+        run: make docker-build
+      -
+        name: Push Docker image
+        run: make docker-push
+      -
+        name: Create install.yaml file
+        run: make build/install.yaml
+      -
+        name: Upload install.yaml file
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./build/install.yaml
+          asset_name: install.yaml
+          asset_content_type: text/yaml
