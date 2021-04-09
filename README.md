@@ -7,8 +7,23 @@ This is an example of an [External Issuer] for cert-manager.
 You can run the sample-external-issuer on a local cluster with this command:
 
 ```
-make IMG=controller:0.0.0 kind-cluster deploy-cert-manager docker-build kind-load deploy e2e
+make kind-cluster deploy-cert-manager docker-build kind-load deploy e2e
 ```
+
+## Release Process
+
+Visit the [GitHub New Release Page][] and fill in the form.
+Here are some example values:
+
+ * Tag Version: `v0.1.0-alpha.0`, `v0.1.0` for example.
+ * Target: `main`
+ * Release Title: `Release v0.1.0-alpha.2`
+ * Description: (optional) a short summery of the changes since the last release.
+
+Click the `Publish release` button to trigger the release process.
+A Docker image will be generated and published to `gcr.io/cert-manager/sample-external-issuer/controller` with the chosen tag.
+
+[GitHub New Release Page]: https://github.com/cert-manager/sample-external-issuer/releases/new
 
 ## How to write your own external issuer
 
