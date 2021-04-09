@@ -415,7 +415,60 @@ The `--cluster-resource-namespace` is the namespace where the issuer will look f
 since `ClusterIssuer` is cluster-scoped.
 The default value of the flag is the namespace where the issuer is running in the cluster.
 
-#### End-to-end tests
+### Logging and Events
+
+We want to make it easy to debug problems with the issuer,
+so in addition to setting Conditions on the Issuer, ClusterIssuer and CertificateRequest,
+we can provide more feedback to the user by logging Kubernetes Events.
+You may want to read more about [Application Introspection and Debugging][] before continuing.
+
+[Application Introspection and Debugging]: https://kubernetes.io/docs/tasks/debug-application-cluster/debug-application-introspection/
+
+Kubernetes Events are saved to the API server on a best-effort basis,
+they are (usually) associated with some other Kubernetes resource,
+and they are temporary; old Events are periodically purged from the API server.
+This allows tools such as `kubectl describe <resource-kind> <resource-name>` to show not only the resource details,
+but also a table of the recent events associated with that resource.
+
+The aim is to produce helpful debug output that looks like this:
+
+```
+$ kubectl describe clusterissuers.sample-issuer.example.com clusterissuer-sample
+...
+    Type:                  Ready
+Events:
+  Type     Reason            Age                From                    Message
+  ----     ------            ----               ----                    -------
+  Normal   IssuerReconciler  13s                sample-external-issuer  First seen
+  Warning  IssuerReconciler  13s (x3 over 13s)  sample-external-issuer  Temporary error. Retrying: failed to get Secret containing Issuer credentials, secret name: sample-external-issuer-system/clusterissuer-sample-credentials, reason: Secret "clusterissuer-sample-credentials" not found
+  Normal   IssuerReconciler  13s (x3 over 13s)  sample-external-issuer  Success
+```
+And this:
+
+```
+$ kubectl describe certificaterequests.cert-manager.io issuer-sample
+...
+Events:
+  Type     Reason                        Age   From                    Message
+  ----     ------                        ----  ----                    -------
+  Normal   CertificateRequestReconciler  23m   sample-external-issuer  Initialising Ready condition
+  Warning  CertificateRequestReconciler  23m   sample-external-issuer  Temporary error. Retrying: error getting issuer: Issuer.sample-issuer.example.com "issuer-sample" not found
+  Normal   CertificateRequestReconciler  23m   sample-external-issuer  Signed
+
+```
+
+First add [record.EventRecorder][] attributes to the `IssuerReconciler` and to the `CertificateRequestReconciler`.
+And then in the Reconciler code, you can then generate an event by executing `r.recorder.Eventf(...)` whenever a significant change is made to the resource.
+
+[record.EventRecorder]: https://pkg.go.dev/k8s.io/client-go/tools/record#EventRecorder
+
+You can also write unit tests to verify the Reconciler events by using a [record.FakeRecorder][].
+
+[record.FakeRecorder]: https://pkg.go.dev/k8s.io/client-go/tools/record#FakeRecorder
+
+See [PR 10: Generate Kubernetes Events](https://github.com/cert-manager/sample-external-issuer/pull/10) for an example of how you might generate events in your issuer.
+
+### End-to-end tests
 
 Now our issuer is almost feature complete and it should be possible to write an end-to-end test that
 deploys a cert-manager `Certificate`

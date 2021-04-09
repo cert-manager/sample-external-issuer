@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -50,11 +51,13 @@ type CertificateRequestReconciler struct {
 	Scheme                   *runtime.Scheme
 	SignerBuilder            signer.SignerBuilder
 	ClusterResourceNamespace string
+	recorder                 record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 	log := ctrl.LoggerFrom(ctx)
@@ -90,9 +93,27 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	// We now have a CertificateRequest that belongs to us so we are responsible
-	// for updating its Ready condition.
-	setReadyCondition := func(status cmmeta.ConditionStatus, reason, message string) {
+	// report gives feedback by updating the Ready Condition of the Certificate Request.
+	// For added visibility we also log a message and create a Kubernetes Event.
+	report := func(reason, message string, err error) {
+		status := cmmeta.ConditionFalse
+		if reason == cmapi.CertificateRequestReasonIssued {
+			status = cmmeta.ConditionTrue
+		}
+		eventType := corev1.EventTypeNormal
+		if err != nil {
+			log.Error(err, message)
+			eventType = corev1.EventTypeWarning
+			message = fmt.Sprintf("%s: %v", message, err)
+		} else {
+			log.Info(message)
+		}
+		r.recorder.Event(
+			&certificateRequest,
+			eventType,
+			sampleissuerapi.EventReasonCertificateRequestReconciler,
+			message,
+		)
 		cmutil.SetCertificateRequestCondition(
 			&certificateRequest,
 			cmapi.CertificateRequestConditionReady,
@@ -105,7 +126,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// Always attempt to update the Ready condition
 	defer func() {
 		if err != nil {
-			setReadyCondition(cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, err.Error())
+			report(cmapi.CertificateRequestReasonPending, "Temporary error. Retrying", err)
 		}
 		if updateErr := r.Status().Update(ctx, &certificateRequest); updateErr != nil {
 			err = utilerrors.NewAggregate([]error{err, updateErr})
@@ -115,8 +136,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// Add a Ready condition if one does not already exist
 	if ready := cmutil.GetCertificateRequestCondition(&certificateRequest, cmapi.CertificateRequestConditionReady); ready == nil {
-		log.Info("Initialising Ready condition")
-		setReadyCondition(cmmeta.ConditionFalse, cmapi.CertificateRequestReasonPending, "Initialising")
+		report(cmapi.CertificateRequestReasonPending, "Initialising Ready condition", nil)
 		return ctrl.Result{}, nil
 	}
 
@@ -124,9 +144,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	issuerGVK := sampleissuerapi.GroupVersion.WithKind(certificateRequest.Spec.IssuerRef.Kind)
 	issuerRO, err := r.Scheme.New(issuerGVK)
 	if err != nil {
-		err = fmt.Errorf("%w: %v", errIssuerRef, err)
-		log.Error(err, "Unrecognised kind. Ignoring.")
-		setReadyCondition(cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, err.Error())
+		report(cmapi.CertificateRequestReasonFailed, "Unrecognised kind. Ignoring", fmt.Errorf("%w: %v", errIssuerRef, err))
 		return ctrl.Result{}, nil
 	}
 	issuer := issuerRO.(client.Object)
@@ -144,9 +162,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		secretNamespace = r.ClusterResourceNamespace
 		log = log.WithValues("clusterissuer", issuerName)
 	default:
-		err := fmt.Errorf("unexpected issuer type: %v", t)
-		log.Error(err, "The issuerRef referred to a registered Kind which is not yet handled. Ignoring.")
-		setReadyCondition(cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, err.Error())
+		report(cmapi.CertificateRequestReasonFailed, "The issuerRef referred to a registered Kind which is not yet handled. Ignoring", fmt.Errorf("unexpected issuer type: %v", t))
 		return ctrl.Result{}, nil
 	}
 
@@ -157,8 +173,7 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	issuerSpec, issuerStatus, err := issuerutil.GetSpecAndStatus(issuer)
 	if err != nil {
-		log.Error(err, "Unable to get the IssuerStatus. Ignoring.")
-		setReadyCondition(cmmeta.ConditionFalse, cmapi.CertificateRequestReasonFailed, err.Error())
+		report(cmapi.CertificateRequestReasonFailed, "Unable to get the IssuerStatus. Ignoring", err)
 		return ctrl.Result{}, nil
 	}
 
@@ -187,11 +202,12 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 	certificateRequest.Status.Certificate = signed
 
-	setReadyCondition(cmmeta.ConditionTrue, cmapi.CertificateRequestReasonIssued, "Signed")
+	report(cmapi.CertificateRequestReasonIssued, "Signed", nil)
 	return ctrl.Result{}, nil
 }
 
 func (r *CertificateRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.recorder = mgr.GetEventRecorderFor(sampleissuerapi.EventSource)
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&cmapi.CertificateRequest{}).
 		Complete(r)
