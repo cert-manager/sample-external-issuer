@@ -436,6 +436,14 @@ You can of course write more complete tests than this,
 but this is a good start and demonstrates that the issuer is doing what we hoped it would do.
 
 
+#### Continuous Integration
+
+You should configure a CI system to automatically run the unit-tests when the code changes.
+See the `.github/workflows/`  directory for some examples of using GitHub Actions
+which are triggered by changes to pull request branches and by any changes to the master branch.
+
+
+
 ## Links
 
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers
