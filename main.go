@@ -58,12 +58,16 @@ func main() {
 	var enableLeaderElection bool
 	var clusterResourceNamespace string
 	var printVersion bool
+	var disableApprovedCheck bool
+
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&clusterResourceNamespace, "cluster-resource-namespace", "", "The namespace for secrets in which cluster-scoped resources are found.")
 	flag.BoolVar(&printVersion, "version", false, "Print version to stdout and exit")
+	flag.BoolVar(&disableApprovedCheck, "disable-approved-check", false,
+		"Disables waiting for CertificateRequests to have an approved condition before signing.")
 
 	// Options for configuring logging
 	opts := zap.Options{}
@@ -137,6 +141,7 @@ func main() {
 		Scheme:                   mgr.GetScheme(),
 		ClusterResourceNamespace: clusterResourceNamespace,
 		SignerBuilder:            signer.ExampleSignerFromIssuerAndSecretData,
+		CheckApprovedCondition:   !disableApprovedCheck,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CertificateRequest")
 		os.Exit(1)
