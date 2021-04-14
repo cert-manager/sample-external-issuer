@@ -25,6 +25,7 @@ import (
 
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/clock"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -142,6 +143,7 @@ func main() {
 		ClusterResourceNamespace: clusterResourceNamespace,
 		SignerBuilder:            signer.ExampleSignerFromIssuerAndSecretData,
 		CheckApprovedCondition:   !disableApprovedCheck,
+		Clock:                    clock.RealClock{},
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CertificateRequest")
 		os.Exit(1)

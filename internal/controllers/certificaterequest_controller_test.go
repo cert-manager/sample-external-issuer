@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	logrtesting "github.com/go-logr/logr/testing"
 	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
@@ -13,9 +14,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/clock"
 	"k8s.io/apimachinery/pkg/util/sets"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,6 +27,11 @@ import (
 
 	sampleissuerapi "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
 	"github.com/cert-manager/sample-external-issuer/internal/issuer/signer"
+)
+
+var (
+	fixedClockStart = time.Date(2021, time.January, 1, 1, 0, 0, 0, time.UTC)
+	fixedClock      = clock.NewFakeClock(fixedClockStart)
 )
 
 type fakeSigner struct {
@@ -35,6 +43,8 @@ func (o *fakeSigner) Sign([]byte) ([]byte, error) {
 }
 
 func TestCertificateRequestReconcile(t *testing.T) {
+	nowMetaTime := metav1.NewTime(fixedClockStart)
+
 	type testCase struct {
 		name                         types.NamespacedName
 		objects                      []client.Object
@@ -44,6 +54,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		expectedError                error
 		expectedReadyConditionStatus cmmeta.ConditionStatus
 		expectedReadyConditionReason string
+		expectedFailureTime          *metav1.Time
 		expectedCertificate          []byte
 	}
 	tests := map[string]testCase{
@@ -96,6 +107,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 			},
 			expectedReadyConditionStatus: cmmeta.ConditionTrue,
 			expectedReadyConditionReason: cmapi.CertificateRequestReasonIssued,
+			expectedFailureTime:          nil,
 			expectedCertificate:          []byte("fake signed certificate"),
 		},
 		"success-cluster-issuer": {
@@ -147,6 +159,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 			clusterResourceNamespace:     "kube-system",
 			expectedReadyConditionStatus: cmmeta.ConditionTrue,
 			expectedReadyConditionReason: cmapi.CertificateRequestReasonIssued,
+			expectedFailureTime:          nil,
 			expectedCertificate:          []byte("fake signed certificate"),
 		},
 		"certificaterequest-not-found": {
@@ -507,6 +520,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 			signerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.Signer, error) {
 				return &fakeSigner{}, nil
 			},
+			expectedFailureTime: nil,
 			expectedCertificate: nil,
 		},
 		"request-denied": {
@@ -556,7 +570,10 @@ func TestCertificateRequestReconcile(t *testing.T) {
 			signerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.Signer, error) {
 				return &fakeSigner{}, nil
 			},
-			expectedCertificate: nil,
+			expectedCertificate:          nil,
+			expectedFailureTime:          &nowMetaTime,
+			expectedReadyConditionStatus: cmmeta.ConditionFalse,
+			expectedReadyConditionReason: cmapi.CertificateRequestReasonDenied,
 		},
 	}
 
@@ -577,6 +594,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 				ClusterResourceNamespace: tc.clusterResourceNamespace,
 				SignerBuilder:            tc.signerBuilder,
 				CheckApprovedCondition:   true,
+				Clock:                    fixedClock,
 			}
 			result, err := controller.Reconcile(
 				ctrl.LoggerInto(context.TODO(), &logrtesting.TestLogger{T: t}),
@@ -598,6 +616,10 @@ func TestCertificateRequestReconcile(t *testing.T) {
 					assertCertificateRequestHasReadyCondition(t, tc.expectedReadyConditionStatus, tc.expectedReadyConditionReason, &cr)
 				}
 				assert.Equal(t, tc.expectedCertificate, cr.Status.Certificate)
+
+				if !apiequality.Semantic.DeepEqual(tc.expectedFailureTime, cr.Status.FailureTime) {
+					assert.Equal(t, tc.expectedFailureTime, cr.Status.FailureTime)
+				}
 			}
 		})
 	}
@@ -620,6 +642,7 @@ func assertCertificateRequestHasReadyCondition(t *testing.T, status cmmeta.Condi
 		cmapi.CertificateRequestReasonPending,
 		cmapi.CertificateRequestReasonFailed,
 		cmapi.CertificateRequestReasonIssued,
+		cmapi.CertificateRequestReasonDenied,
 	)
 	assert.Contains(t, validReasons, reason, "unexpected condition reason")
 	assert.Equal(t, reason, condition.Reason, "unexpected condition reason")
