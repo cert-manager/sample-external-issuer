@@ -80,6 +80,33 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
+	// Ignore CertificateRequest if it is already Ready
+	if cmutil.CertificateRequestHasCondition(&certificateRequest, cmapi.CertificateRequestCondition{
+		Type:   cmapi.CertificateRequestConditionReady,
+		Status: cmmeta.ConditionTrue,
+	}) {
+		log.Info("CertificateRequest is Ready. Ignoring.")
+		return ctrl.Result{}, nil
+	}
+	// Ignore CertificateRequest if it is already Failed
+	if cmutil.CertificateRequestHasCondition(&certificateRequest, cmapi.CertificateRequestCondition{
+		Type:   cmapi.CertificateRequestConditionReady,
+		Status: cmmeta.ConditionFalse,
+		Reason: cmapi.CertificateRequestReasonFailed,
+	}) {
+		log.Info("CertificateRequest is Failed. Ignoring.")
+		return ctrl.Result{}, nil
+	}
+	// Ignore CertificateRequest if it already has a Denied Ready Reason
+	if cmutil.CertificateRequestHasCondition(&certificateRequest, cmapi.CertificateRequestCondition{
+		Type:   cmapi.CertificateRequestConditionReady,
+		Status: cmmeta.ConditionFalse,
+		Reason: cmapi.CertificateRequestReasonDenied,
+	}) {
+		log.Info("CertificateRequest already has a Ready condition with Denied Reason. Ignoring.")
+		return ctrl.Result{}, nil
+	}
+
 	// We now have a CertificateRequest that belongs to us so we are responsible
 	// for updating its Ready condition.
 	setReadyCondition := func(status cmmeta.ConditionStatus, reason, message string) {
@@ -124,15 +151,6 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 			log.Info("CertificateRequest has not been approved yet. Ignoring.")
 			return ctrl.Result{}, nil
 		}
-	}
-
-	// Ignore CertificateRequest if it is already Ready
-	if cmutil.CertificateRequestHasCondition(&certificateRequest, cmapi.CertificateRequestCondition{
-		Type:   cmapi.CertificateRequestConditionReady,
-		Status: cmmeta.ConditionTrue,
-	}) {
-		log.Info("CertificateRequest is Ready. Ignoring.")
-		return ctrl.Result{}, nil
 	}
 
 	// Add a Ready condition if one does not already exist
