@@ -230,10 +230,10 @@ If there is a mismatch in the `IssuerRef` we ignore the `CertificateRequest`.
 #### Check that the CertificateRequest is Approved
 
 Issuers must only sign `Approved` `CertificateRequest` resources.
-- If the `CertificateRequest` has been `Denied`, then the Issuer should set a
-  `Ready` condition to `False`, and set the `FailureTime`.
-- If the `CertificateRequest` has been `Approved`, then the Issuer should process
-  the request.
+If the `CertificateRequest` has been `Denied`, then the Issuer should set a
+`Ready` condition to `False`, and set the `FailureTime`.
+If the `CertificateRequest` has been `Approved`, then the Issuer should process
+the request.
 
 Issuers are not responsible for approving `CertificateRequests`.
 You can read more about the [CertificateRequest Approval API][] in the cert-manager documentation.
