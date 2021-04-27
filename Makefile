@@ -8,9 +8,11 @@ SHELL := bash
 # The version which will be reported by the --version argument of each binary
 # and which will be used as the Docker image tag
 VERSION ?= $(shell git describe --tags)
-
+# The Docker repository name, overridden in CI.
+DOCKER_REGISTRY ?= ghcr.io
+DOCKER_IMAGE_NAME ?= cert-manager/sample-external-issuer/controller
 # Image URL to use all building/pushing image targets
-IMG ?= controller:${VERSION}
+IMG ?= ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${VERSION}
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -31,6 +33,8 @@ CERT_MANAGER_VERSION ?= 1.3.0
 # Controller tools
 CONTROLLER_GEN_VERSION := 0.5.0
 CONTROLLER_GEN := ${BIN}/controller-gen-${CONTROLLER_GEN_VERSION}
+
+INSTALL_YAML ?= build/install.yaml
 
 all: manager
 
@@ -54,12 +58,23 @@ install: manifests
 uninstall: manifests
 	kustomize build config/crd | kubectl delete -f -
 
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy:
-	pushd config/manager
+# TODO(wallrj): .PHONY ensures that the install file is always regenerated,
+# because I this really depends on the checksum of the Docker image and all the
+# base Kustomize files.
+.PHONY: ${INSTALL_YAML}
+${INSTALL_YAML}:
+	mkdir -p $(dir ${INSTALL_YAML})
+	TMP_DIR=$$(mktemp -d -p ${CURDIR})
+	trap "rm -rf $${TMP_DIR}" EXIT
+	pushd $${TMP_DIR}
+	kustomize create --resources ../config/default
 	kustomize edit set image controller=${IMG}
 	popd
-	kustomize build config/default | kubectl apply -f -
+	kustomize build $${TMP_DIR} > ${INSTALL_YAML}
+
+# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+deploy: ${INSTALL_YAML}
+	 kubectl apply -f ${INSTALL_YAML}
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: ${CONTROLLER_GEN}
