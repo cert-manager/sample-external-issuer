@@ -472,7 +472,15 @@ You should configure a CI system to automatically run the unit-tests when the co
 See the `.github/workflows/`  directory for some examples of using GitHub Actions
 which are triggered by changes to pull request branches and by any changes to the master branch.
 
+## Security considerations
 
+We use a [Distroless Docker Image][] as our Docker base image,
+and we configure our `manager` process to run as `USER: nonroot:nonroot`.
+This limits the privileges of the `manager` process in the cluster.
+
+Additionally we [Configure a Security Context][] for the manager Pod.
+We set `runAsNonRoot`, which ensure that the Kubelet will validate the image at runtime
+to ensure that it does not run as UID 0 (root) and fail to start the container if it does.
 
 ## Links
 
@@ -480,3 +488,5 @@ which are triggered by changes to pull request branches and by any changes to th
 [cert-manager Concepts Documentation]: https://cert-manager.io/docs/concepts
 [Kubebuilder Book]: https://book.kubebuilder.io
 [Kubebuilder Markers]: https://book.kubebuilder.io/reference/markers.html
+[Distroless Docker Image]: https://github.com/GoogleContainerTools/distroless
+[Configure a Security Context]: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
