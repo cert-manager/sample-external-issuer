@@ -478,6 +478,8 @@ We use a [Distroless Docker Image][] as our Docker base image,
 and we configure our `manager` process to run as `USER: nonroot:nonroot`.
 This limits the privileges of the `manager` process in the cluster.
 
+The [kube-rbac-proxy][] sidecar Docker image also uses a non-root user by default (since v0.7.0).
+
 Additionally we [Configure a Security Context][] for the manager Pod.
 We set `runAsNonRoot`, which ensure that the Kubelet will validate the image at runtime
 to ensure that it does not run as UID 0 (root) and fail to start the container if it does.
@@ -490,3 +492,4 @@ to ensure that it does not run as UID 0 (root) and fail to start the container i
 [Kubebuilder Markers]: https://book.kubebuilder.io/reference/markers.html
 [Distroless Docker Image]: https://github.com/GoogleContainerTools/distroless
 [Configure a Security Context]: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+[kube-rbac-proxy]: https://github.com/brancz/kube-rbac-proxy
