@@ -22,8 +22,7 @@ make kind-cluster deploy-cert-manager docker-build kind-load deploy e2e
 ## How to write your own external issuer
 
 If you are writing an external issuer you may find it helpful to review the code and the commits in this repository
-and to follow the steps below,
-replacing references to `sample-external-issuer` with the name of your project.
+and to follow the steps below, replacing references to `sample-external-issuer` with the name of your project.
 
 ### Prerequisites
 
@@ -37,7 +36,8 @@ You will need the following command line tools installed on your PATH:
 * [Kubebuilder v2.3.1+](https://book.kubebuilder.io/quick-start.html#installation)
 * [Kustomize v3.8.1+](https://kustomize.io/)
 
-You may also want to read: the [Kubebuilder Book] and the [cert-manager Concepts Documentation].
+You may also want to read: the [Kubebuilder Book] and the [cert-manager Concepts Documentation] for further background
+information.
 
 ### Create a test cluster
 
@@ -84,9 +84,10 @@ kubebuilder init  --domain example.com --owner 'The cert-manager Authors'
 This will create multiple directories and files containing a Makefile and configuration for building and deploying your project.
 
 Notably:
-* `config/`: containing various `kustomize` configuration files.
-* `Dockerfile`: which is used to statically compile the issuer and package it as a "distroless" Docker image.
-* `main.go`: which is the issuer main entry point.
+
+* `config/`: various `kustomize` configuration files.
+* `Dockerfile`: used to statically compile the issuer and package it as a "distroless" Docker image.
+* `main.go`: the issuer's main entry point.
 
 ### Run the controller-manager
 
@@ -154,10 +155,10 @@ You should see a number of new and modified files, reflecting the changes you ma
 ### Creating a CertificateRequest controller
 
 We now need a controller to handle [cert-manager CertificateRequest resources](https://cert-manager.io/docs/concepts/certificaterequest/).
-This controller will watch for `CertificateRequest` resources and attempt to sign their attached x509 certificate signing requests (CSR).
-Your external issuer will likely interact with your certificate authority using a REST API,
-so this is the controller where we will eventually need to instantiate an HTTP client,
-directly or via an API wrapper library.
+This controller will watch for `CertificateRequest` resources and attempt to sign their attached certificate signing requests (CSR).
+
+Your external issuer will likely interact with your certificate authority using a REST API, so this is the controller where we will
+eventually need to instantiate an HTTP client, directly or via an API wrapper library.
 And we will need to get the configuration and credentials for this from the `Issuer` or `ClusterIssuer` referred to by the `CertificateRequest`.
 
 Start by copying the `controllers/issuer_controller.go` to `controllers/certificaterequest_controller.go`
