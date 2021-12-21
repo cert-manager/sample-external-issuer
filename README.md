@@ -1,6 +1,9 @@
 # sample-external-issuer
 
-This is an example of an [External Issuer] for cert-manager.
+External issuers extend [cert-manager](https://cert-manager.io/) to issue certificates using APIs and services
+which aren't built into the cert-manager core.
+
+This repository provides an example of an [External Issuer].
 
 ## Install
 
