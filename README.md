@@ -19,23 +19,6 @@ You can run the sample-external-issuer on a local cluster with this command:
 make kind-cluster deploy-cert-manager docker-build kind-load deploy e2e
 ```
 
-## Release Process
-
-Visit the [GitHub New Release Page][] and fill in the form.
-Here are some example values:
-
- * Tag Version: `v0.1.0-alpha.0`, `v0.1.0` for example.
- * Target: `main`
- * Release Title: `Release v0.1.0-alpha.2`
- * Description: (optional) a short summery of the changes since the last release.
-
-Click the `Publish release` button to trigger the automated release process:
-
-* A Docker image will be generated and published to `gcr.io/cert-manager/sample-external-issuer/controller` with the chosen tag.
-* An `install.yaml` file will be generated and attached to the release.
-
-[GitHub New Release Page]: https://github.com/cert-manager/sample-external-issuer/releases/new
-
 ## How to write your own external issuer
 
 If you are writing an external issuer you may find it helpful to review the code and the commits in this repository
@@ -486,6 +469,23 @@ Additionally we [Configure a Security Context][] for the manager Pod.
 We set `runAsNonRoot`, which ensure that the Kubelet will validate the image at runtime
 to ensure that it does not run as UID 0 (root) and fail to start the container if it does.
 
+## Notes for cert-manager Maintainers
+
+### Release Process
+
+Visit the [GitHub New Release Page][] and fill in the form.
+Here are some example values:
+
+ * Tag Version: `v0.1.0-alpha.0`, `v0.1.0` for example.
+ * Target: `main`
+ * Release Title: `Release v0.1.0-alpha.2`
+ * Description: (optional) a short summery of the changes since the last release.
+
+Click the `Publish release` button to trigger the automated release process:
+
+* A Docker image will be generated and published to `ghcr.io/cert-manager/sample-external-issuer/controller` with the chosen tag.
+* An `install.yaml` file will be generated and attached to the release.
+
 ## Links
 
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers
@@ -495,3 +495,4 @@ to ensure that it does not run as UID 0 (root) and fail to start the container i
 [Distroless Docker Image]: https://github.com/GoogleContainerTools/distroless
 [Configure a Security Context]: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 [kube-rbac-proxy]: https://github.com/brancz/kube-rbac-proxy
+[GitHub New Release Page]: https://github.com/cert-manager/sample-external-issuer/releases/new
