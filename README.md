@@ -254,9 +254,6 @@ Use the [cert-manager API utility package][] which contains functions for checki
 
 [cert-manager API utility package]: https://pkg.go.dev/github.com/jetstack/cert-manager@v1.3.0/pkg/api/util#CertificateRequestIsApproved
 
-If using an older version of cert-manager (pre v1.3), you can disable this check
-by supplying the command line flag `-disable-approved-check` to the Deployment.
-
 #### Set the CertificateRequest Ready condition
 
 The [External Issuer] documentation says the following:
@@ -398,7 +395,7 @@ so that we can check how the reconciler behaves when `Sign` fails.
 If `Sign` succeeds it returns the bytes of a signed certificate which we then use as the value for `CertificateRequest.Status.Certificate`.
 And we add a unit-test for this case.
 
-In the unit-tests, we can use a simple byte string for the certificate, but in E2E later we will use real ceritificate signing requests and real certificates.
+In the unit-tests, we can use a simple byte string for the certificate, but in E2E tests later we will use real certificate signing requests and real certificates.
 
 #### An example signer
 
