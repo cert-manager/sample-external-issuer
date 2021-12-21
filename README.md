@@ -7,7 +7,7 @@ This repository provides an example of an [External Issuer].
 
 ## Install
 
-```
+```console
 kubectl apply -f https://github.com/cert-manager/sample-external-issuer/releases/download/v0.1.0/install.yaml
 ```
 
@@ -15,7 +15,7 @@ kubectl apply -f https://github.com/cert-manager/sample-external-issuer/releases
 
 You can run the sample-external-issuer on a local cluster with this command:
 
-```
+```console
 make kind-cluster deploy-cert-manager docker-build kind-load deploy e2e
 ```
 
@@ -60,14 +60,14 @@ You may also want to read: the [Kubebuilder Book] and the [cert-manager Concepts
 
 We will need a Kubernetes cluster on which to test our issuer and we can quickly create one using `kind`.
 
-```
+```console
 kind create cluster
 ```
 
 This will update your KUBECONFIG file with the URL and credentials for the test cluster.
 You can explore it using `kubectl`
 
-```
+```console
 kubectl get nodes
 ```
 
@@ -78,7 +78,7 @@ This should show you details of a single node.
 We need a Git repository to track changes to the issuer code.
 You can start by creating a repository on GitHub or you can create it locally.
 
-```
+```console
 mkdir sample-external-issuer
 cd sample-external-issuer
 git init
@@ -88,17 +88,18 @@ git init
 
 A Go project needs a `go.mod` file which defines the root name of your Go packages.
 
-```
+```console
 go mod init github.com/cert-manager/sample-external-issuer
 ```
 
 ### Initialise a Kubebuilder project
 
-```
+```console
 kubebuilder init  --domain example.com --owner 'The cert-manager Authors'
 ```
 
 This will create multiple directories and files containing a Makefile and configuration for building and deploying your project.
+
 Notably:
 * `config/`: containing various `kustomize` configuration files.
 * `Dockerfile`: which is used to statically compile the issuer and package it as a "distroless" Docker image.
@@ -108,8 +109,7 @@ Notably:
 
 With all these tools in place and with the project initialised you should now be able to run the issuer for the first time.
 
-
-```
+```console
 make run
 ```
 
@@ -125,11 +125,11 @@ NOTE: It is important to understand the [Concept of Issuers] before proceeding.
 
 We create the custom resource definitions (CRDs) using `kubebuilder` as follows:
 
-```
+```console
 kubebuilder create api --group sample-issuer --kind Issuer --version v1alpha1
 ```
 
-```
+```console
 kubebuilder create api --group sample-issuer --kind ClusterIssuer --version v1alpha1 --namespaced=false
 ```
 
@@ -162,7 +162,7 @@ which we now need to edit as follows:
 After modifying [Kubebuilder Markers] and API source files you should always regenerate all generated code and configuration,
 as follows:
 
-```
+```console
 make generate manifests
 ```
 
@@ -183,7 +183,7 @@ and modifying its code and comments to refer to `CertificateRequest` rather than
 NOTE: You will need to import the [cert-manager V1 API](https://cert-manager.io/docs/reference/api-docs/)
 and this in turn will pull in a number of transitive dependencies of cert-manager which we will deal with shortly.
 
-```
+```go
 import (
 ...
     cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -195,8 +195,7 @@ import (
 Next edit `main.go` and register the new `CertificateRequestReconciler` in the same way that the `IssuerReconciler` is registered.
 You will also need to add the cert-manager API types to the `Scheme`:
 
-```
-
+```go
 func init() {
 ...
     _ = cmapi.AddToScheme(scheme)
@@ -213,7 +212,7 @@ NOTE: You may encounter a dependency conflict between the version of controller-
 We have to use the cert-manager version and that in turn requires a newer version of the `zapr` logging library.
 Add the following line to `go.mod`:
 
-```
+```text
 github.com/go-logr/zapr v0.2.0 // indirect
 ```
 
@@ -320,7 +319,7 @@ The API for your CA may require some configuration and credentials and the obvio
 We extend the `IssuerSpec` to include a `URL` field and a `AuthSecretName`, which is the name of a `Secret`.
 As usual run `make generate manifests` after modifying the API source files:
 
-```
+```console
 make generate manifests
 ```
 
@@ -337,7 +336,7 @@ Both the `IssuerReconciler` and the `CertificateRequestReconciler` are updated t
 Add a new [Kubebuilder RBAC Marker](https://book.kubebuilder.io/reference/markers/rbac.html) to both controllers,
 permitting them read-only access to `Secret` resources.
 
-```
+```go
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 ```
 
@@ -369,7 +368,7 @@ rather than waiting a for `CertificateRequest` to fail before being alerted to t
 Start with an `Interface` describing the health check operation.
 For example:
 
-```
+```go
 type HealthChecker interface {
     Check() error
 }
@@ -382,8 +381,8 @@ so that we can check how the reconciler behaves when the health checks fail.
 And since we can't know the `Issuer` configuration or credentials until we begin reconciling,
 we need to describe a constructor function type which can build a `HealthChecker` from an `IssuerSpec`  and some `Secret` data.
 
-```
- type HealthCheckerBuilder func(*sampleissuerapi.IssuerSpec, map[string][]byte) (HealthChecker, error)
+```go
+type HealthCheckerBuilder func(*sampleissuerapi.IssuerSpec, map[string][]byte) (HealthChecker, error)
 ```
 
 This will be supplied as an `IssuerReconciler` field, and can be easily faked in the unit-tests.
@@ -401,7 +400,7 @@ Let's once again assume that the issuer will connect to a certificate authority 
 We extend the `signer` package with a new simple `Interface` and a factory function definition
 (for the same reasons given about in the Issuer Health Checks section):
 
-```
+```go
 type Signer interface {
     Sign([]byte) ([]byte, error)
 }
@@ -459,7 +458,7 @@ which will help create a test cluster and to help install cert-manager.
 
 We can write a simple end-to-end test which deploys a `Certificate` manifest and waits for it to be ready.
 
-```
+```console
 kubectl apply --filename config/samples
 kubectl wait --for=condition=Ready --timeout=5s issuers.sample-issuer.example.com issuer-sample
 kubectl wait --for=condition=Ready --timeout=5s  certificates.cert-manager.io certificate-by-issuer
