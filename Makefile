@@ -36,25 +36,31 @@ CONTROLLER_GEN := ${BIN}/controller-gen-${CONTROLLER_GEN_VERSION}
 
 INSTALL_YAML ?= build/install.yaml
 
+.PHONY: all
 all: manager
 
 # Run tests
+.PHONY: test
 test: generate fmt vet manifests
 	go test ./... -coverprofile cover.out
 
 # Build manager binary
+.PHONY: manager
 manager: generate fmt vet
 	go build -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
+.PHONY: run
 run: generate fmt vet manifests
 	go run ./main.go
 
 # Install CRDs into a cluster
+.PHONY: install
 install: manifests
 	kustomize build config/crd | kubectl apply -f -
 
 # Uninstall CRDs from a cluster
+.PHONY: uninstall
 uninstall: manifests
 	kustomize build config/crd | kubectl delete -f -
 
@@ -73,18 +79,22 @@ ${INSTALL_YAML}:
 	kustomize build $${TMP_DIR} > ${INSTALL_YAML}
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+.PHONY: deploy
 deploy: ${INSTALL_YAML}
 	 kubectl apply -f ${INSTALL_YAML}
 
 # Generate manifests e.g. CRD, RBAC etc.
+.PHONY: manifests
 manifests: ${CONTROLLER_GEN}
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 # Run go fmt against code
+.PHONY: fmt
 fmt:
 	go fmt ./...
 
 # Run go vet against code
+.PHONY: vet
 vet:
 	go vet ./...
 
@@ -93,6 +103,7 @@ generate: ${CONTROLLER_GEN}
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
+.PHONY: docker-build
 docker-build:
 	docker build \
 		--build-arg VERSION=$(VERSION) \
@@ -101,6 +112,7 @@ docker-build:
 		${CURDIR}
 
 # Push the docker image
+.PHONY: docker-push
 docker-push:
 	docker push ${IMG}
 
@@ -135,6 +147,7 @@ deploy-cert-manager: ## Deploy cert-manager in the configured Kubernetes cluster
 	kubectl apply --filename=https://github.com/jetstack/cert-manager/releases/download/v${CERT_MANAGER_VERSION}/cert-manager.yaml
 	kubectl wait --for=condition=Available --timeout=300s apiservice v1.cert-manager.io
 
+.PHONY: e2e
 e2e:
 	kubectl apply --filename config/samples
 
