@@ -1,6 +1,6 @@
 module github.com/cert-manager/sample-external-issuer
 
-go 1.15
+go 1.17
 
 require (
 	github.com/go-logr/logr v1.2.0
