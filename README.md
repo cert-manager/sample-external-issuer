@@ -192,14 +192,6 @@ So it is important to add all the API types that are used in your issuer.
 
 Finally run `make generate manifests` again to update all the generated code.
 
-NOTE: You may encounter a dependency conflict between the version of controller-runtime used by cert-manager and the version installed by Kubebuilder.
-We have to use the cert-manager version and that in turn requires a newer version of the `zapr` logging library.
-Add the following line to `go.mod`:
-
-```text
-github.com/go-logr/zapr v0.2.0 // indirect
-```
-
 #### Get the CertificateRequest
 
 The `CertificateRequestReconciler` is triggered by changes to any `CertificateRequest` resource in the cluster.
