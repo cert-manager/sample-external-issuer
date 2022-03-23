@@ -69,14 +69,14 @@ uninstall: manifests
 # base Kustomize files.
 .PHONY: ${INSTALL_YAML}
 ${INSTALL_YAML}:
-	mkdir -p $(dir ${INSTALL_YAML})
-	TMP_DIR=$$(mktemp -d -p ${CURDIR})
-	trap "rm -rf $${TMP_DIR}" EXIT
-	pushd $${TMP_DIR}
-	kustomize create --resources ../config/default
+	mkdir -p $(dir $@)
+	rm -rf build/kustomize
+	mkdir -p build/kustomize
+	cd build/kustomize
+	kustomize create --resources ../../config/default
 	kustomize edit set image controller=${IMG}
-	popd
-	kustomize build $${TMP_DIR} > ${INSTALL_YAML}
+	cd ${CURDIR}
+	kustomize build build/kustomize > $@
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 .PHONY: deploy
