@@ -23,7 +23,7 @@ OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 
 # Kind
-KIND_VERSION := 0.9.0
+KIND_VERSION := 0.12.0
 KIND := ${BIN}/kind-${KIND_VERSION}
 K8S_CLUSTER_NAME := sample-external-issuer-e2e
 
@@ -168,5 +168,5 @@ ${BIN}:
 	mkdir -p ${BIN}
 
 ${KIND}: ${BIN}
-	curl -sSL -o ${KIND} https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VERSION}/kind-${OS}-${ARCH}
+	curl -fsSL -o ${KIND} https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VERSION}/kind-${OS}-${ARCH}
 	chmod +x ${KIND}
