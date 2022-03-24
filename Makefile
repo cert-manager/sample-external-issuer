@@ -23,12 +23,12 @@ OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 
 # Kind
-KIND_VERSION := 0.9.0
+KIND_VERSION := 0.12.0
 KIND := ${BIN}/kind-${KIND_VERSION}
 K8S_CLUSTER_NAME := sample-external-issuer-e2e
 
 # cert-manager
-CERT_MANAGER_VERSION ?= 1.3.0
+CERT_MANAGER_VERSION ?= 1.7.1
 
 # Controller tools
 CONTROLLER_GEN_VERSION := 0.5.0
@@ -69,14 +69,14 @@ uninstall: manifests
 # base Kustomize files.
 .PHONY: ${INSTALL_YAML}
 ${INSTALL_YAML}:
-	mkdir -p $(dir ${INSTALL_YAML})
-	TMP_DIR=$$(mktemp -d -p ${CURDIR})
-	trap "rm -rf $${TMP_DIR}" EXIT
-	pushd $${TMP_DIR}
-	kustomize create --resources ../config/default
+	mkdir -p $(dir $@)
+	rm -rf build/kustomize
+	mkdir -p build/kustomize
+	cd build/kustomize
+	kustomize create --resources ../../config/default
 	kustomize edit set image controller=${IMG}
-	popd
-	kustomize build $${TMP_DIR} > ${INSTALL_YAML}
+	cd ${CURDIR}
+	kustomize build build/kustomize > $@
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 .PHONY: deploy
@@ -168,5 +168,5 @@ ${BIN}:
 	mkdir -p ${BIN}
 
 ${KIND}: ${BIN}
-	curl -sSL -o ${KIND} https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VERSION}/kind-${OS}-${ARCH}
+	curl -fsSL -o ${KIND} https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VERSION}/kind-${OS}-${ARCH}
 	chmod +x ${KIND}

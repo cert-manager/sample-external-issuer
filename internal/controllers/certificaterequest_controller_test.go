@@ -597,7 +597,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 				Clock:                    fixedClock,
 			}
 			result, err := controller.Reconcile(
-				ctrl.LoggerInto(context.TODO(), &logrtesting.TestLogger{T: t}),
+				ctrl.LoggerInto(context.TODO(), logrtesting.NewTestLogger(t)),
 				reconcile.Request{NamespacedName: tc.name},
 			)
 			if tc.expectedError != nil {

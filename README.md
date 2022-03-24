@@ -29,7 +29,7 @@ and to follow the steps below, replacing references to `sample-external-issuer` 
 You will need the following command line tools installed on your PATH:
 
 * [Git](https://git-scm.com/)
-* [Golang v1.13+](https://golang.org/)
+* [Golang v1.17+](https://golang.org/)
 * [Docker v17.03+](https://docs.docker.com/install/)
 * [Kind v0.9.0+](https://kind.sigs.k8s.io/docs/user/quick-start/)
 * [Kubectl v1.11.3+](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
@@ -191,14 +191,6 @@ The `Scheme` is how the controller-runtime client knows how to decode and encode
 So it is important to add all the API types that are used in your issuer.
 
 Finally run `make generate manifests` again to update all the generated code.
-
-NOTE: You may encounter a dependency conflict between the version of controller-runtime used by cert-manager and the version installed by Kubebuilder.
-We have to use the cert-manager version and that in turn requires a newer version of the `zapr` logging library.
-Add the following line to `go.mod`:
-
-```text
-github.com/go-logr/zapr v0.2.0 // indirect
-```
 
 #### Get the CertificateRequest
 
