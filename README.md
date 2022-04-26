@@ -81,10 +81,9 @@ go mod init github.com/cert-manager/sample-external-issuer
 kubebuilder init  --domain example.com --owner 'The cert-manager Authors'
 ```
 
-This will create multiple directories and files containing a Makefile and configuration for building and deploying your project.
+This will create multiple directories and files for building and deploying your project. Notably, these files include:
 
-Notably:
-
+* `Makefile`: various commands useful for development and deployment
 * `config/`: various `kustomize` configuration files.
 * `Dockerfile`: used to statically compile the issuer and package it as a "distroless" Docker image.
 * `main.go`: the issuer's main entry point.
@@ -100,29 +99,25 @@ make run
 This will compile and run the issuer locally and it will connect to the test cluster and log some startup messages.
 We will add more to it in the next steps.
 
-
 ### Creating Issuer and ClusterIssuer custom resources
 
 An [External Issuer] must implement two custom resources for compatibility with cert-manager: `Issuer` and `ClusterIssuer`
 
 NOTE: It is important to understand the [Concept of Issuers] before proceeding.
 
-We create the custom resource definitions (CRDs) using `kubebuilder` as follows:
+We create the custom resource definitions (CRDs) using `kubebuilder` using the following commands; you'll be prompted to
+create APIs and controllers and you can answer `y` to all of the prompts.
 
 ```console
 kubebuilder create api --group sample-issuer --kind Issuer --version v1alpha1
-```
-
-```console
 kubebuilder create api --group sample-issuer --kind ClusterIssuer --version v1alpha1 --namespaced=false
 ```
 
-NOTE: You will be prompted to create APIs and controllers. Answer `y` to all.
+The values we pass to these commands specify the GVK (group, version, kind):
 
-The `group` is the name given to a collection of custom resource APIs, and
-the `kind` is the name of an individual resource in that group, and
-the `version` allows you to create multiple versions of your APIs as the evolve,
-whilst providing backwards compatibility for clients that still use older API versions.
+* `group` is the name given to a collection of custom resource APIs
+* `kind` is the name of an individual resource in that group
+* `version` allows you to create multiple versions of your APIs as they evolve, whilst providing backwards compatibility for clients using older API versions
 
 These commands will have created some boilerplate files and directories: `api/` and `controllers/`,
 which we now need to edit as follows:
