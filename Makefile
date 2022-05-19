@@ -28,7 +28,7 @@ KIND := ${BIN}/kind-${KIND_VERSION}
 K8S_CLUSTER_NAME := sample-external-issuer-e2e
 
 # cert-manager
-CERT_MANAGER_VERSION ?= 1.7.1
+CERT_MANAGER_VERSION ?= 1.8.0
 
 # Controller tools
 CONTROLLER_GEN_VERSION := 0.5.0
@@ -144,7 +144,7 @@ kind-export-logs:
 
 .PHONY: deploy-cert-manager
 deploy-cert-manager: ## Deploy cert-manager in the configured Kubernetes cluster in ~/.kube/config
-	kubectl apply --filename=https://github.com/jetstack/cert-manager/releases/download/v${CERT_MANAGER_VERSION}/cert-manager.yaml
+	kubectl apply --filename=https://github.com/cert-manager/cert-manager/releases/download/v${CERT_MANAGER_VERSION}/cert-manager.yaml
 	kubectl wait --for=condition=Available --timeout=300s apiservice v1.cert-manager.io
 
 .PHONY: e2e
