@@ -165,7 +165,7 @@ and this in turn will pull in a number of transitive dependencies of cert-manage
 ```go
 import (
 ...
-    cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+    cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 ...
 )
 
@@ -240,7 +240,7 @@ Adjust your `CertificateRequest` controller and the accompanying unit tests
 to ignore `CertificateRequest` resources if they are `Denied` or if they are not `Approved`.
 Use the [cert-manager API utility package][] which contains functions for checking the `Approved` and `Denied` conditions of a `CertificateRequest`.
 
-[cert-manager API utility package]: https://pkg.go.dev/github.com/jetstack/cert-manager@v1.3.0/pkg/api/util#CertificateRequestIsApproved
+[cert-manager API utility package]: https://pkg.go.dev/github.com/cert-manager/cert-manager@v1.8.0/pkg/api/util#CertificateRequestIsApproved
 
 #### Set the CertificateRequest Ready condition
 
