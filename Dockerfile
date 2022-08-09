@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.17 as builder
+FROM golang:1.18 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -23,11 +23,13 @@ ENV GO111MODULE=on
 # re-compile when the version changes
 RUN go build -mod=readonly ./...
 
-ARG VERSION
+ARG GOFLAGS
+ARG GOLDFLAGS
 
 # Build
 RUN go build \
-  -ldflags="-X=github.com/cert-manager/sample-external-issuer/internal/version.Version=${VERSION}" \
+  ${GOFLAGS} \
+  -ldflags "${GOLDFLAGS}" \
   -mod=readonly \
   -o manager main.go
 

@@ -35,10 +35,6 @@ You will need the following command line tools installed on your PATH:
 * [Git](https://git-scm.com/)
 * [Golang v1.17+](https://golang.org/)
 * [Docker v17.03+](https://docs.docker.com/install/)
-* [Kind v0.9.0+](https://kind.sigs.k8s.io/docs/user/quick-start/)
-* [Kubectl v1.11.3+](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-* [Kubebuilder v2.3.1+](https://book.kubebuilder.io/quick-start.html#installation)
-* [Kustomize v3.8.1+](https://kustomize.io/)
 
 You may also want to read: the [Kubebuilder Book] and the [cert-manager Concepts Documentation] for further background
 information.

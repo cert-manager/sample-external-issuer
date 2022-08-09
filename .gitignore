@@ -24,4 +24,6 @@ bin
 *~
 
 # Build artifacts
-build
+_bin
+
+.vscode

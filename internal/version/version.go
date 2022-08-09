@@ -17,5 +17,6 @@ limitations under the License.
 package version
 
 var (
-	Version = "development"
+	Version   = "development"
+	GitCommit = "<sha-commit>"
 )
