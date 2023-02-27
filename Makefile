@@ -49,7 +49,7 @@ CURL = curl --silent --show-error --fail --location --retry 10 --retry-connrefus
 # target is invoked.
 FORCE:
 
-
+# ToDo: we might not need all of these targets
 $(BINDIR) $(BINDIR)/tools $(BINDIR)/scratch $(BINDIR)/downloaded $(BINDIR)/downloaded/tools:
 	@mkdir -p $@
 
@@ -57,6 +57,10 @@ $(BINDIR) $(BINDIR)/tools $(BINDIR)/scratch $(BINDIR)/downloaded $(BINDIR)/downl
 # need a way to re-trigger the symlinking from $(BINDIR)/downloaded to $(BINDIR)/tools.
 $(BINDIR)/scratch/%_VERSION: FORCE | $(BINDIR)/scratch
 	@test "$($*_VERSION)" == "$(shell cat $@ 2>/dev/null)" || echo $($*_VERSION) > $@
+
+.PHONY: clean-all
+clean-all: 
+	rm -rf $(BINDIR)/
 	
 ######
 # Go #
@@ -76,16 +80,16 @@ NEEDS_GO := $(if $(findstring vendor-go,$(MAKECMDGOALS))$(shell [ -f $(BINDIR)/t
 ifeq ($(NEEDS_GO),)
 GO := go
 else
-export GOROOT := $(PWD)/$(BINDIR)/tools/goroot
-export PATH := $(PWD)/$(BINDIR)/tools/goroot/bin:$(PATH)
-GO := $(PWD)/$(BINDIR)/tools/go
+export GOROOT := $(BINDIR)/tools/goroot
+export PATH := $(BINDIR)/tools/goroot/bin:$(PATH)
+GO := $(BINDIR)/tools/go
 endif
 
-GOBUILD := CGO_ENABLED=$(CGO_ENABLED) GOMAXPROCS=$(GOBUILDPROCS) $(GO) build
-GOTEST := CGO_ENABLED=$(CGO_ENABLED) $(GO) test
+# GOBUILD := CGO_ENABLED=$(CGO_ENABLED) GOMAXPROCS=$(GOBUILDPROCS) $(GO) build
+# GOTEST := CGO_ENABLED=$(CGO_ENABLED) $(GO) test
 
-# overwrite $(GOTESTSUM) and add CGO_ENABLED variable
-GOTESTSUM := CGO_ENABLED=$(CGO_ENABLED) $(GOTESTSUM)
+# # overwrite $(GOTESTSUM) and add CGO_ENABLED variable
+# GOTESTSUM := CGO_ENABLED=$(CGO_ENABLED) $(GOTESTSUM)
 
 .PHONY: vendor-go
 ## By default, this Makefile uses the system's Go. You can use a "vendored"
@@ -130,7 +134,7 @@ $(BINDIR)/downloaded/tools/go-$(VENDORED_GO_VERSION)-%.tar.gz: | $(BINDIR)/downl
 
 # Kind
 KIND_VERSION := 0.12.0
-KIND := ${BIN}/kind-${KIND_VERSION}
+KIND := ${BINDIR}/kind-${KIND_VERSION}
 K8S_CLUSTER_NAME := sample-external-issuer-e2e
 
 # cert-manager
@@ -138,7 +142,7 @@ CERT_MANAGER_VERSION ?= 1.8.0
 
 # Controller tools
 CONTROLLER_GEN_VERSION := 0.5.0
-CONTROLLER_GEN := ${BIN}/controller-gen-${CONTROLLER_GEN_VERSION}
+CONTROLLER_GEN := ${BINDIR}/controller-gen-${CONTROLLER_GEN_VERSION}
 
 INSTALL_YAML ?= build/install.yaml
 
@@ -147,18 +151,18 @@ all: manager
 
 # Run tests
 .PHONY: test
-test: generate fmt vet manifests
-	go test ./... -coverprofile cover.out
+test: $(NEEDS_GO) generate fmt vet manifests
+	$(GO) test ./... -coverprofile cover.out
 
 # Build manager binary
 .PHONY: manager
-manager: generate fmt vet
-	go build -o bin/manager main.go
+manager: $(NEEDS_GO) generate fmt vet
+	$(GO) build -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
-run: generate fmt vet manifests
-	go run ./main.go
+run: $(NEEDS_GO) generate fmt vet manifests
+	$(GO) run ./main.go
 
 # Install CRDs into a cluster
 .PHONY: install
@@ -196,13 +200,13 @@ manifests: ${CONTROLLER_GEN}
 
 # Run go fmt against code
 .PHONY: fmt
-fmt:
-	go fmt ./...
+fmt: $(NEEDS_GO) 
+	$(GO) fmt ./...
 
 # Run go vet against code
 .PHONY: vet
-vet:
-	go vet ./...
+vet: $(NEEDS_GO) 
+	$(GO) vet ./...
 
 # Generate code
 generate: ${CONTROLLER_GEN}
@@ -222,12 +226,12 @@ docker-build:
 docker-push:
 	docker push ${IMG}
 
-${CONTROLLER_GEN}: | ${BIN}
+${CONTROLLER_GEN}: $(NEEDS_GO) | ${BINDIR}
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d)
 	trap "rm -rf $${CONTROLLER_GEN_TMP_DIR}" EXIT
 	cd $${CONTROLLER_GEN_TMP_DIR}
-	go mod init tmp
-	GOBIN=$${CONTROLLER_GEN_TMP_DIR} go get sigs.k8s.io/controller-tools/cmd/controller-gen@v${CONTROLLER_GEN_VERSION}
+	$(GO) mod init tmp
+	GOBIN=$${CONTROLLER_GEN_TMP_DIR} $(GO) get sigs.k8s.io/controller-tools/cmd/controller-gen@v${CONTROLLER_GEN_VERSION}
 	mv $${CONTROLLER_GEN_TMP_DIR}/controller-gen ${CONTROLLER_GEN}
 
 
@@ -268,11 +272,9 @@ e2e:
 	kubectl delete --filename config/samples
 
 # ==================================
-# Download: tools in ${BIN}
+# Download: tools in ${BINDIR}
 # ==================================
-${BIN}:
-	mkdir -p ${BIN}
 
-${KIND}: ${BIN}
+${KIND}: ${BINDIR}
 	curl -fsSL -o ${KIND} https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VERSION}/kind-${OS}-${ARCH}
 	chmod +x ${KIND}
