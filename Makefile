@@ -4,6 +4,7 @@ SHELL := bash
 .DELETE_ON_ERROR:
 .SUFFIXES:
 .ONESHELL:
+LN := cp -f -r
 
 # The version which will be reported by the --version argument of each binary
 # and which will be used as the Docker image tag
@@ -17,10 +18,115 @@ IMG ?= ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${VERSION}
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
 # BIN is the directory where tools will be installed
-export BIN ?= ${CURDIR}/bin
+export BINDIR ?= ${CURDIR}/bin
 
-OS := $(shell go env GOOS)
-ARCH := $(shell go env GOARCH)
+# The reason we don't use "go env GOOS" or "go env GOARCH" is that the "go"
+# binary may not be available in the PATH yet when the Makefiles are
+# evaluated. HOST_OS and HOST_ARCH only support Linux, *BSD and macOS (M1
+# and Intel).
+HOST_OS := $(shell uname -s | tr A-Z a-z)
+HOST_ARCH = $(shell uname -m)
+
+ifeq (x86_64, $(HOST_ARCH))
+	HOST_ARCH = amd64
+else ifeq (aarch64, $(HOST_ARCH))
+	HOST_ARCH = arm64
+endif
+
+# --silent = don't print output like progress meters
+# --show-error = but do print errors when they happen
+# --fail = exit with a nonzero error code without the response from the server when there's an HTTP error
+# --location = follow redirects from the server
+# --retry = the number of times to retry a failed attempt to connect
+# --retry-connrefused = retry even if the initial connection was refused
+CURL = curl --silent --show-error --fail --location --retry 10 --retry-connrefused
+
+#################
+# Other Targets #
+#################
+
+# FORCE is a helper target to force a file to be rebuilt whenever its
+# target is invoked.
+FORCE:
+
+
+$(BINDIR) $(BINDIR)/tools $(BINDIR)/scratch $(BINDIR)/downloaded $(BINDIR)/downloaded/tools:
+	@mkdir -p $@
+
+# When switching branches which use different versions of the tools, we
+# need a way to re-trigger the symlinking from $(BINDIR)/downloaded to $(BINDIR)/tools.
+$(BINDIR)/scratch/%_VERSION: FORCE | $(BINDIR)/scratch
+	@test "$($*_VERSION)" == "$(shell cat $@ 2>/dev/null)" || echo $($*_VERSION) > $@
+	
+######
+# Go #
+######
+VENDORED_GO_VERSION := 1.19.6
+# $(NEEDS_GO) is a target that is set as an order-only prerequisite in
+# any target that calls $(GO), e.g.:
+#
+#     $(BINDIR)/tools/crane: $(NEEDS_GO)
+#         $(GO) build -o $(BINDIR)/tools/crane
+#
+# $(NEEDS_GO) is empty most of the time, except when running "make vendor-go"
+# or when "make vendor-go" was previously run, in which case $(NEEDS_GO) is set
+# to $(BINDIR)/tools/go, since $(BINDIR)/tools/go is a prerequisite of
+# any target depending on Go when "make vendor-go" was run.
+NEEDS_GO := $(if $(findstring vendor-go,$(MAKECMDGOALS))$(shell [ -f $(BINDIR)/tools/go ] && echo yes), $(BINDIR)/tools/go,)
+ifeq ($(NEEDS_GO),)
+GO := go
+else
+export GOROOT := $(PWD)/$(BINDIR)/tools/goroot
+export PATH := $(PWD)/$(BINDIR)/tools/goroot/bin:$(PATH)
+GO := $(PWD)/$(BINDIR)/tools/go
+endif
+
+GOBUILD := CGO_ENABLED=$(CGO_ENABLED) GOMAXPROCS=$(GOBUILDPROCS) $(GO) build
+GOTEST := CGO_ENABLED=$(CGO_ENABLED) $(GO) test
+
+# overwrite $(GOTESTSUM) and add CGO_ENABLED variable
+GOTESTSUM := CGO_ENABLED=$(CGO_ENABLED) $(GOTESTSUM)
+
+.PHONY: vendor-go
+## By default, this Makefile uses the system's Go. You can use a "vendored"
+## version of Go that will get downloaded by running this command once. To
+## disable vendoring, run "make unvendor-go". When vendoring is enabled,
+## you will want to set the following:
+##
+##     export PATH="$PWD/$(BINDIR)/tools:$PATH"
+##     export GOROOT="$PWD/$(BINDIR)/tools/goroot"
+vendor-go: $(BINDIR)/tools/go
+
+.PHONY: unvendor-go
+unvendor-go: $(BINDIR)/tools/go
+	rm -rf $(BINDIR)/tools/go $(BINDIR)/tools/goroot
+
+.PHONY: which-go
+## Print the version and path of go which will be used for building and
+## testing in Makefile commands. Vendored go will have a path in ./bin
+which-go: |  $(NEEDS_GO)
+	@$(GO) version
+	@echo "go binary used for above version information: $(GO)"
+
+# The "_" in "_go "prevents "go mod tidy" from trying to tidy the vendored
+# goroot.^
+$(BINDIR)/tools/go: $(BINDIR)/downloaded/tools/_go-$(VENDORED_GO_VERSION)-$(HOST_OS)-$(HOST_ARCH)/goroot/bin/go $(BINDIR)/tools/goroot $(BINDIR)/scratch/VENDORED_GO_VERSION | $(BINDIR)/tools
+	cd $(dir $@) && $(LN) $(patsubst $(BINDIR)/%,../%,$<) .
+	@touch $@
+
+$(BINDIR)/tools/goroot: $(BINDIR)/downloaded/tools/_go-$(VENDORED_GO_VERSION)-$(HOST_OS)-$(HOST_ARCH)/goroot $(BINDIR)/scratch/VENDORED_GO_VERSION | $(BINDIR)/tools
+	@rm -rf $(BINDIR)/tools/goroot
+	cd $(dir $@) && $(LN) $(patsubst $(BINDIR)/%,../%,$<) .
+	@touch $@
+
+$(BINDIR)/downloaded/tools/_go-$(VENDORED_GO_VERSION)-%/goroot $(BINDIR)/downloaded/tools/_go-$(VENDORED_GO_VERSION)-%/goroot/bin/go: $(BINDIR)/downloaded/tools/go-$(VENDORED_GO_VERSION)-%.tar.gz
+	@mkdir -p $(dir $@)
+	rm -rf $(BINDIR)/downloaded/tools/_go-$(VENDORED_GO_VERSION)-$*/goroot
+	tar xzf $< -C $(BINDIR)/downloaded/tools/_go-$(VENDORED_GO_VERSION)-$*
+	mv $(BINDIR)/downloaded/tools/_go-$(VENDORED_GO_VERSION)-$*/go $(BINDIR)/downloaded/tools/_go-$(VENDORED_GO_VERSION)-$*/goroot
+
+$(BINDIR)/downloaded/tools/go-$(VENDORED_GO_VERSION)-%.tar.gz: | $(BINDIR)/downloaded/tools
+	$(CURL) https://go.dev/dl/go$(VENDORED_GO_VERSION).$*.tar.gz -o $@
 
 # Kind
 KIND_VERSION := 0.12.0
