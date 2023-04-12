@@ -28,7 +28,7 @@ KIND := ${BIN}/kind-${KIND_VERSION}
 K8S_CLUSTER_NAME := sample-external-issuer-e2e
 
 # cert-manager
-CERT_MANAGER_VERSION ?= 1.8.0
+CERT_MANAGER_VERSION ?= 1.11.1
 
 # Controller tools
 CONTROLLER_GEN_VERSION := 0.5.0
