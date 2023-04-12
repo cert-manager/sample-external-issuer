@@ -3,11 +3,15 @@ on: [pull_request]
 jobs:
   run_tests:
     runs-on: ubuntu-22.04
-    container: golang:1.20
     steps:
       -
         name: Checkout
         uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+          cache: true
       -
         name: Run tests
         run: make test
