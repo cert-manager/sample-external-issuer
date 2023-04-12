@@ -32,7 +32,7 @@ CERT_MANAGER_VERSION ?= 1.8.0
 
 # Controller tools
 CONTROLLER_GEN_VERSION := 0.5.0
-CONTROLLER_GEN := ${BIN}/controller-gen-${CONTROLLER_GEN_VERSION}
+CONTROLLER_GEN := ${BIN}/controller-gen
 
 INSTALL_YAML ?= build/install.yaml
 
@@ -117,13 +117,7 @@ docker-push:
 	docker push ${IMG}
 
 ${CONTROLLER_GEN}: | ${BIN}
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d)
-	trap "rm -rf $${CONTROLLER_GEN_TMP_DIR}" EXIT
-	cd $${CONTROLLER_GEN_TMP_DIR}
-	go mod init tmp
-	GOBIN=$${CONTROLLER_GEN_TMP_DIR} go get sigs.k8s.io/controller-tools/cmd/controller-gen@v${CONTROLLER_GEN_VERSION}
-	mv $${CONTROLLER_GEN_TMP_DIR}/controller-gen ${CONTROLLER_GEN}
-
+	GOBIN=${BIN} go install sigs.k8s.io/controller-tools/cmd/controller-gen@v${CONTROLLER_GEN_VERSION}
 
 # ==================================
 # E2E testing
