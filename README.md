@@ -439,6 +439,18 @@ kubectl wait --for=condition=Ready --timeout=5s  certificates.cert-manager.io ce
 You can of course write more complete tests than this,
 but this is a good start and demonstrates that the issuer is doing what we hoped it would do.
 
+Run the tests as follows:
+
+```bash
+# Create a Kind cluster along with cert-manager.
+make kind-cluster deploy-cert-manager
+
+# Wait for cert-manager to start...
+
+# Build and install sample-external-issuer and run the E2E tests.
+# This step can be run iteratively when ever you make changes to the code or to the installation manifests.
+make docker-build kind-load deploy e2e
+```
 
 #### Continuous Integration
 
