@@ -33,7 +33,7 @@ and to follow the steps below, replacing references to `sample-external-issuer` 
 You will need the following command line tools installed on your PATH:
 
 * [Git](https://git-scm.com/)
-* [Golang v1.17+](https://golang.org/)
+* [Golang v1.20+](https://golang.org/)
 * [Docker v17.03+](https://docs.docker.com/install/)
 * [Kind v0.9.0+](https://kind.sigs.k8s.io/docs/user/quick-start/)
 * [Kubectl v1.11.3+](https://kubernetes.io/docs/tasks/tools/install-kubectl/)

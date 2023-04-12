@@ -3,7 +3,7 @@ on: [pull_request]
 jobs:
   run_tests:
     runs-on: ubuntu-20.04
-    container: golang:1.17
+    container: golang:1.20
     steps:
       -
         name: Checkout
