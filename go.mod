@@ -1,6 +1,6 @@
 module github.com/cert-manager/sample-external-issuer
 
-go 1.17
+go 1.20
 
 require (
 	github.com/cert-manager/cert-manager v1.8.0
