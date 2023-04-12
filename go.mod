@@ -3,7 +3,7 @@ module github.com/cert-manager/sample-external-issuer
 go 1.20
 
 require (
-	github.com/cert-manager/cert-manager v1.11.1
+	github.com/cert-manager/cert-manager v1.12.0-alpha.2
 	github.com/go-logr/logr v1.2.3
 	github.com/stretchr/testify v1.8.1
 	k8s.io/api v0.26.0
