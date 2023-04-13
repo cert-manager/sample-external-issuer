@@ -1,17 +1,26 @@
 name: test
 on: [pull_request]
 jobs:
-  run_tests:
+  unit:
     runs-on: ubuntu-22.04
     steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-
+      - uses: actions/checkout@v2
       - uses: actions/setup-go@v3
         with:
           go-version-file: go.mod
           cache: true
-      -
-        name: Run tests
-        run: make test
+      - run: make test
+  e2e:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - run: make -j1 kind-cluster deploy-cert-manager docker-build kind-load deploy e2e
+      - run: make kind-export-logs E2E_ARTIFACTS_DIRECTORY=build/artifacts/e2e-logs
+        if: failure()
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: e2e-logs
+          path: build/artifacts/e2e-logs
