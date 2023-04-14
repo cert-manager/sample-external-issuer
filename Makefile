@@ -31,7 +31,7 @@ K8S_CLUSTER_NAME := sample-external-issuer-e2e
 CERT_MANAGER_VERSION ?= 1.11.1
 
 # Controller tools
-CONTROLLER_GEN_VERSION := 0.5.0
+CONTROLLER_GEN_VERSION := 0.11.3
 CONTROLLER_GEN := ${BIN}/controller-gen
 
 INSTALL_YAML ?= build/install.yaml
