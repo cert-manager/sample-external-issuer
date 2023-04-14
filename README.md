@@ -181,7 +181,7 @@ You will also need to add the cert-manager API types to the `Scheme`:
 ```go
 func init() {
 ...
-    _ = cmapi.AddToScheme(scheme)
+	utilruntime.Must(cmapi.AddToScheme(scheme))
 ...
 }
 ```
