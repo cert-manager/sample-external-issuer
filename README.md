@@ -458,6 +458,12 @@ You should configure a CI system to automatically run the unit-tests when the co
 See the `.github/workflows/`  directory for some examples of using GitHub Actions
 which are triggered by changes to pull request branches and by any changes to the master branch.
 
+The E2E tests can be executed with GitHub Actions too.
+The GitHub Actions Ubuntu runner has Docker installed and is capable of running a Kind cluster for the E2E tests.
+The Kind cluster logs can be saved in the event of an E2E test failure,
+and uploaded as a GitHub Actions artifact,
+to make it easier to diagnose E2E test failures.
+
 ## Security considerations
 
 We use a [Distroless Docker Image][] as our Docker base image,
