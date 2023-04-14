@@ -13,8 +13,6 @@ DOCKER_REGISTRY ?= ghcr.io
 DOCKER_IMAGE_NAME ?= cert-manager/sample-external-issuer/controller
 # Image URL to use all building/pushing image targets
 IMG ?= ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${VERSION}
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true"
 
 # BIN is the directory where tools will be installed
 export BIN ?= ${CURDIR}/bin
@@ -86,7 +84,7 @@ deploy: ${INSTALL_YAML}
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
 manifests: ${CONTROLLER_GEN}
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook crd paths="./..." output:crd:artifacts:config=config/crd/bases
 
 # Run go fmt against code
 .PHONY: fmt
