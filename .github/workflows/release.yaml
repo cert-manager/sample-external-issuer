@@ -24,9 +24,7 @@ jobs:
       -
         name: Build Docker image
         run: make docker-buildx
-      -
-        name: Push Docker image
-        run: make docker-push
+
       -
         name: Create install.yaml file
         run: make build/install.yaml
