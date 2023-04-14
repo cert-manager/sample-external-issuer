@@ -126,10 +126,6 @@ The values we pass to these commands specify the GVK (group, version, kind):
 These commands will have created some boilerplate files and directories: `api/` and `controllers/`,
 which we now need to edit as follows:
 
-* `api/v1alpha1/{cluster}issuer_types.go`:
-   Add [Kubebuilder CRD Markers](https://book.kubebuilder.io/reference/markers/crd.html) to allow modification of IssuerStatus
-   as a [Status Subresource](https://book-v1.book.kubebuilder.io/basics/status_subresource.html): `// +kubebuilder:subresource:status`
-
 * `api/v1alpha1/clusterissuer_types.go`:
    Remove the `ClusterIssuerSpec` and `ClusterIssuerStatus` and replace them with `IssuerSpec` and `IssuerStatus`.
    This is because both types of issuers share the same configuration and status reporting.
