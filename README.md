@@ -37,7 +37,7 @@ You will need the following command line tools installed on your PATH:
 * [Docker v17.03+](https://docs.docker.com/install/)
 * [Kind v0.18.0+](https://kind.sigs.k8s.io/docs/user/quick-start/)
 * [Kubectl v1.26.3+](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-* [Kubebuilder v2.3.1+](https://book.kubebuilder.io/quick-start.html#installation)
+* [Kubebuilder v3.9.1+](https://book.kubebuilder.io/quick-start.html#installation)
 * [Kustomize v3.8.1+](https://kustomize.io/)
 
 You may also want to read: the [Kubebuilder Book] and the [cert-manager Concepts Documentation] for further background
@@ -126,10 +126,6 @@ The values we pass to these commands specify the GVK (group, version, kind):
 These commands will have created some boilerplate files and directories: `api/` and `controllers/`,
 which we now need to edit as follows:
 
-* `api/v1alpha1/{cluster}issuer_types.go`:
-   Add [Kubebuilder CRD Markers](https://book.kubebuilder.io/reference/markers/crd.html) to allow modification of IssuerStatus
-   as a [Status Subresource](https://book-v1.book.kubebuilder.io/basics/status_subresource.html): `// +kubebuilder:subresource:status`
-
 * `api/v1alpha1/clusterissuer_types.go`:
    Remove the `ClusterIssuerSpec` and `ClusterIssuerStatus` and replace them with `IssuerSpec` and `IssuerStatus`.
    This is because both types of issuers share the same configuration and status reporting.
@@ -181,7 +177,7 @@ You will also need to add the cert-manager API types to the `Scheme`:
 ```go
 func init() {
 ...
-    _ = cmapi.AddToScheme(scheme)
+	utilruntime.Must(cmapi.AddToScheme(scheme))
 ...
 }
 ```
