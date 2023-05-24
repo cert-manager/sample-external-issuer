@@ -47,7 +47,9 @@ func TestCertificateRequestReconcile(t *testing.T) {
 
 	type testCase struct {
 		name                         types.NamespacedName
-		objects                      []client.Object
+		secretObjects                []client.Object
+		issuerObjects                []client.Object
+		crObjects                    []client.Object
 		signerBuilder                signer.SignerBuilder
 		clusterResourceNamespace     string
 		expectedResult               ctrl.Result
@@ -60,7 +62,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 	tests := map[string]testCase{
 		"success-issuer": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -78,29 +80,31 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Status: cmmeta.ConditionUnknown,
 					}),
 				),
-				&sampleissuerapi.Issuer{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "issuer1",
-						Namespace: "ns1",
-					},
-					Spec: sampleissuerapi.IssuerSpec{
-						AuthSecretName: "issuer1-credentials",
-					},
-					Status: sampleissuerapi.IssuerStatus{
-						Conditions: []sampleissuerapi.IssuerCondition{
-							{
-								Type:   sampleissuerapi.IssuerConditionReady,
-								Status: sampleissuerapi.ConditionTrue,
-							},
+			},
+			issuerObjects: []client.Object{&sampleissuerapi.Issuer{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "issuer1",
+					Namespace: "ns1",
+				},
+				Spec: sampleissuerapi.IssuerSpec{
+					AuthSecretName: "issuer1-credentials",
+				},
+				Status: sampleissuerapi.IssuerStatus{
+					Conditions: []sampleissuerapi.IssuerCondition{
+						{
+							Type:   sampleissuerapi.IssuerConditionReady,
+							Status: sampleissuerapi.ConditionTrue,
 						},
 					},
 				},
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "issuer1-credentials",
-						Namespace: "ns1",
-					},
+			},
+			},
+			secretObjects: []client.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "issuer1-credentials",
+					Namespace: "ns1",
 				},
+			},
 			},
 			signerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.Signer, error) {
 				return &fakeSigner{}, nil
@@ -112,7 +116,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"success-cluster-issuer": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -130,6 +134,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Status: cmmeta.ConditionUnknown,
 					}),
 				),
+			},
+			issuerObjects: []client.Object{
 				&sampleissuerapi.ClusterIssuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "clusterissuer1",
@@ -146,13 +152,13 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						},
 					},
 				},
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "clusterissuer1-credentials",
-						Namespace: "kube-system",
-					},
-				},
 			},
+			secretObjects: []client.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "clusterissuer1-credentials",
+					Namespace: "kube-system",
+				},
+			}},
 			signerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.Signer, error) {
 				return &fakeSigner{}, nil
 			},
@@ -167,7 +173,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"issuer-ref-foreign-group": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -180,7 +186,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"certificaterequest-already-ready": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -202,7 +208,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"certificaterequest-missing-ready-condition": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -222,7 +228,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"issuer-ref-unknown-kind": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -246,7 +252,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"issuer-not-found": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -271,7 +277,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"clusterissuer-not-found": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -296,7 +302,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"issuer-not-ready": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -314,6 +320,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Status: cmmeta.ConditionUnknown,
 					}),
 				),
+			},
+			issuerObjects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -335,7 +343,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"issuer-secret-not-found": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -353,6 +361,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Status: cmmeta.ConditionUnknown,
 					}),
 				),
+			},
+			issuerObjects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -377,7 +387,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"signer-builder-error": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -395,6 +405,16 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Status: cmmeta.ConditionUnknown,
 					}),
 				),
+			},
+			secretObjects: []client.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1-credentials",
+						Namespace: "ns1",
+					},
+				},
+			},
+			issuerObjects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -410,12 +430,6 @@ func TestCertificateRequestReconcile(t *testing.T) {
 								Status: sampleissuerapi.ConditionTrue,
 							},
 						},
-					},
-				},
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "issuer1-credentials",
-						Namespace: "ns1",
 					},
 				},
 			},
@@ -428,7 +442,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"signer-error": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -446,6 +460,16 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Status: cmmeta.ConditionUnknown,
 					}),
 				),
+			},
+			secretObjects: []client.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1-credentials",
+						Namespace: "ns1",
+					},
+				},
+			},
+			issuerObjects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -463,12 +487,6 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						},
 					},
 				},
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "issuer1-credentials",
-						Namespace: "ns1",
-					},
-				},
 			},
 			signerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.Signer, error) {
 				return &fakeSigner{errSign: errors.New("simulated sign error")}, nil
@@ -479,7 +497,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"request-not-approved": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -493,6 +511,16 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Status: cmmeta.ConditionUnknown,
 					}),
 				),
+			},
+			secretObjects: []client.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "issuer1-credentials",
+						Namespace: "ns1",
+					},
+				},
+			},
+			issuerObjects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -510,12 +538,6 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						},
 					},
 				},
-				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "issuer1-credentials",
-						Namespace: "ns1",
-					},
-				},
 			},
 			signerBuilder: func(*sampleissuerapi.IssuerSpec, map[string][]byte) (signer.Signer, error) {
 				return &fakeSigner{}, nil
@@ -525,7 +547,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		},
 		"request-denied": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "cr1"},
-			objects: []client.Object{
+			crObjects: []client.Object{
 				cmgen.CertificateRequest(
 					"cr1",
 					cmgen.SetCertificateRequestNamespace("ns1"),
@@ -543,6 +565,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						Status: cmmeta.ConditionUnknown,
 					}),
 				),
+			},
+			issuerObjects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -560,6 +584,8 @@ func TestCertificateRequestReconcile(t *testing.T) {
 						},
 					},
 				},
+			},
+			secretObjects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1-credentials",
@@ -586,7 +612,11 @@ func TestCertificateRequestReconcile(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(tc.objects...).
+				WithObjects(tc.secretObjects...).
+				WithObjects(tc.crObjects...).
+				WithObjects(tc.issuerObjects...).
+				WithStatusSubresource(tc.issuerObjects...).
+				WithStatusSubresource(tc.crObjects...).
 				Build()
 			controller := CertificateRequestReconciler{
 				Client:                   fakeClient,
