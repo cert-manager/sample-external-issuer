@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/tools/record"
 	clock "k8s.io/utils/clock/testing"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -610,6 +612,7 @@ func TestCertificateRequestReconcile(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
+			eventRecorder := record.NewFakeRecorder(100)
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
 				WithObjects(tc.secretObjects...).
@@ -625,31 +628,107 @@ func TestCertificateRequestReconcile(t *testing.T) {
 				SignerBuilder:            tc.signerBuilder,
 				CheckApprovedCondition:   true,
 				Clock:                    fixedClock,
+				recorder:                 eventRecorder,
 			}
-			result, err := controller.Reconcile(
+
+			var crBefore cmapi.CertificateRequest
+			if err := fakeClient.Get(context.TODO(), tc.name, &crBefore); err != nil {
+				require.NoError(t, client.IgnoreNotFound(err), "unexpected error from fake client")
+			}
+
+			result, reconcileErr := controller.Reconcile(
 				ctrl.LoggerInto(context.TODO(), logrtesting.NewTestLogger(t)),
 				reconcile.Request{NamespacedName: tc.name},
 			)
+
+			var actualEvents []string
+			for {
+				select {
+				case e := <-eventRecorder.Events:
+					actualEvents = append(actualEvents, e)
+					continue
+				default:
+					break
+				}
+				break
+			}
 			if tc.expectedError != nil {
-				assertErrorIs(t, tc.expectedError, err)
+				assertErrorIs(t, tc.expectedError, reconcileErr)
 			} else {
-				assert.NoError(t, err)
+				assert.NoError(t, reconcileErr)
 			}
 
 			assert.Equal(t, tc.expectedResult, result, "Unexpected result")
 
-			var cr cmapi.CertificateRequest
-			err = fakeClient.Get(context.TODO(), tc.name, &cr)
-			require.NoError(t, client.IgnoreNotFound(err), "unexpected error from fake client")
-			if err == nil {
-				if tc.expectedReadyConditionStatus != "" {
-					assertCertificateRequestHasReadyCondition(t, tc.expectedReadyConditionStatus, tc.expectedReadyConditionReason, &cr)
-				}
-				assert.Equal(t, tc.expectedCertificate, cr.Status.Certificate)
+			// For tests where the target CertificateRequest exists, we perform some further checks,
+			// otherwise exit early.
+			var crAfter cmapi.CertificateRequest
+			if err := fakeClient.Get(context.TODO(), tc.name, &crAfter); err != nil {
+				require.NoError(t, client.IgnoreNotFound(err), "unexpected error from fake client")
+				return
+			}
 
-				if !apiequality.Semantic.DeepEqual(tc.expectedFailureTime, cr.Status.FailureTime) {
-					assert.Equal(t, tc.expectedFailureTime, cr.Status.FailureTime)
+			// If the CR is unchanged after the Reconcile then we expect no
+			// Events and need not perform any further checks.
+			// NB: controller-runtime FakeClient updates the Resource version.
+			if crBefore.ResourceVersion == crAfter.ResourceVersion {
+				assert.Empty(t, actualEvents, "Events should only be created if the CertificateRequest is modified")
+				return
+			}
+
+			// Certificate checks.
+			// Always check the certificate, in case it has been unexpectedly
+			// set without also having first added and updated the Ready
+			// condition.
+			assert.Equal(t, tc.expectedCertificate, crAfter.Status.Certificate)
+
+			if !apiequality.Semantic.DeepEqual(tc.expectedFailureTime, crAfter.Status.FailureTime) {
+				assert.Equal(t, tc.expectedFailureTime, crAfter.Status.FailureTime)
+			}
+
+			// Condition checks
+			condition := cmutil.GetCertificateRequestCondition(&crAfter, cmapi.CertificateRequestConditionReady)
+			// If the CertificateRequest is expected to have a Ready condition then we perform some extra checks.
+			if tc.expectedReadyConditionStatus != "" {
+				if assert.NotNilf(
+					t,
+					condition,
+					"Ready condition was expected but not found: tc.expectedReadyConditionStatus == %v",
+					tc.expectedReadyConditionStatus,
+				) {
+					verifyCertificateRequestReadyCondition(t, tc.expectedReadyConditionStatus, tc.expectedReadyConditionReason, condition)
 				}
+			} else {
+				assert.Nil(t, condition, "Unexpected Ready condition")
+			}
+
+			// Event checks
+			if condition != nil {
+				// The desired Event behaviour is as follows:
+				//
+				// * An Event should always be generated when the Ready condition is set.
+				// * Event contents should match the status and message of the condition.
+				// * Event type should be Warning if the Reconcile failed (temporary error)
+				// * Event type should be warning if the condition status is failed (permanent error)
+				expectedEventType := corev1.EventTypeNormal
+				if reconcileErr != nil || condition.Reason == cmapi.CertificateRequestReasonFailed {
+					expectedEventType = corev1.EventTypeWarning
+				}
+				// If there was a Reconcile error, there will be a retry and
+				// this should be reflected in the Event message.
+				eventMessage := condition.Message
+				if reconcileErr != nil {
+					eventMessage = fmt.Sprintf("Temporary error. Retrying: %v", reconcileErr)
+				}
+				// Each Reconcile should only emit a single Event
+				assert.Equal(
+					t,
+					[]string{fmt.Sprintf("%s %s %s", expectedEventType, sampleissuerapi.EventReasonCertificateRequestReconciler, eventMessage)},
+					actualEvents,
+					"expected a single event matching the condition",
+				)
+			} else {
+				assert.Empty(t, actualEvents, "Found unexpected Events without a corresponding Ready condition")
 			}
 		})
 	}
@@ -662,11 +741,7 @@ func assertErrorIs(t *testing.T, expectedError, actualError error) {
 	assert.Truef(t, errors.Is(actualError, expectedError), "unexpected error type. expected: %v, got: %v", expectedError, actualError)
 }
 
-func assertCertificateRequestHasReadyCondition(t *testing.T, status cmmeta.ConditionStatus, reason string, cr *cmapi.CertificateRequest) {
-	condition := cmutil.GetCertificateRequestCondition(cr, cmapi.CertificateRequestConditionReady)
-	if !assert.NotNil(t, condition, "Ready condition not found") {
-		return
-	}
+func verifyCertificateRequestReadyCondition(t *testing.T, status cmmeta.ConditionStatus, reason string, condition *cmapi.CertificateRequestCondition) {
 	assert.Equal(t, status, condition.Status, "unexpected condition status")
 	validReasons := sets.NewString(
 		cmapi.CertificateRequestReasonPending,
