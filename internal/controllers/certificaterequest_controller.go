@@ -110,6 +110,14 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
+	if r.CheckApprovedCondition {
+		// If CertificateRequest has not been approved, exit early.
+		if !cmutil.CertificateRequestIsApproved(&certificateRequest) {
+			log.Info("CertificateRequest has not been approved yet. Ignoring.")
+			return ctrl.Result{}, nil
+		}
+	}
+
 	// report gives feedback by updating the Ready Condition of the Certificate Request.
 	// For added visibility we also log a message and create a Kubernetes Event.
 	report := func(reason, message string, err error) {
@@ -162,16 +170,8 @@ func (r *CertificateRequestReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 
 		message := "The CertificateRequest was denied by an approval controller"
-		setReadyCondition(cmmeta.ConditionFalse, cmapi.CertificateRequestReasonDenied, message)
+		report(cmapi.CertificateRequestReasonDenied, message, nil)
 		return ctrl.Result{}, nil
-	}
-
-	if r.CheckApprovedCondition {
-		// If CertificateRequest has not been approved, exit early.
-		if !cmutil.CertificateRequestIsApproved(&certificateRequest) {
-			log.Info("CertificateRequest has not been approved yet. Ignoring.")
-			return ctrl.Result{}, nil
-		}
 	}
 
 	// Add a Ready condition if one does not already exist
