@@ -34,7 +34,8 @@ func TestIssuerReconcile(t *testing.T) {
 	type testCase struct {
 		kind                         string
 		name                         types.NamespacedName
-		objects                      []client.Object
+		issuerObjects                []client.Object
+		secretObjects                []client.Object
 		healthCheckerBuilder         signer.HealthCheckerBuilder
 		clusterResourceNamespace     string
 		expectedResult               ctrl.Result
@@ -46,7 +47,7 @@ func TestIssuerReconcile(t *testing.T) {
 		"success-issuer": {
 			kind: "Issuer",
 			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
-			objects: []client.Object{
+			issuerObjects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -64,6 +65,8 @@ func TestIssuerReconcile(t *testing.T) {
 						},
 					},
 				},
+			},
+			secretObjects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1-credentials",
@@ -80,7 +83,7 @@ func TestIssuerReconcile(t *testing.T) {
 		"success-clusterissuer": {
 			kind: "ClusterIssuer",
 			name: types.NamespacedName{Name: "clusterissuer1"},
-			objects: []client.Object{
+			issuerObjects: []client.Object{
 				&sampleissuerapi.ClusterIssuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "clusterissuer1",
@@ -97,6 +100,8 @@ func TestIssuerReconcile(t *testing.T) {
 						},
 					},
 				},
+			},
+			secretObjects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "clusterissuer1-credentials",
@@ -120,7 +125,7 @@ func TestIssuerReconcile(t *testing.T) {
 		},
 		"issuer-missing-ready-condition": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
-			objects: []client.Object{
+			issuerObjects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -132,7 +137,7 @@ func TestIssuerReconcile(t *testing.T) {
 		},
 		"issuer-missing-secret": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
-			objects: []client.Object{
+			issuerObjects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -156,7 +161,7 @@ func TestIssuerReconcile(t *testing.T) {
 		},
 		"issuer-failing-healthchecker-builder": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
-			objects: []client.Object{
+			issuerObjects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -174,6 +179,8 @@ func TestIssuerReconcile(t *testing.T) {
 						},
 					},
 				},
+			},
+			secretObjects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1-credentials",
@@ -189,7 +196,7 @@ func TestIssuerReconcile(t *testing.T) {
 		},
 		"issuer-failing-healthchecker-check": {
 			name: types.NamespacedName{Namespace: "ns1", Name: "issuer1"},
-			objects: []client.Object{
+			issuerObjects: []client.Object{
 				&sampleissuerapi.Issuer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1",
@@ -207,6 +214,8 @@ func TestIssuerReconcile(t *testing.T) {
 						},
 					},
 				},
+			},
+			secretObjects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "issuer1-credentials",
@@ -230,7 +239,9 @@ func TestIssuerReconcile(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(tc.objects...).
+				WithObjects(tc.secretObjects...).
+				WithObjects(tc.issuerObjects...).
+				WithStatusSubresource(tc.issuerObjects...).
 				Build()
 			if tc.kind == "" {
 				tc.kind = "Issuer"
