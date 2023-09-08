@@ -17,44 +17,35 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/klog/v2"
 
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	sampleissuerv1alpha1 "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
 	"github.com/cert-manager/sample-external-issuer/internal/controllers"
-	"github.com/cert-manager/sample-external-issuer/internal/issuer/signer"
+	"github.com/cert-manager/sample-external-issuer/internal/signer"
 	"github.com/cert-manager/sample-external-issuer/internal/version"
 	//+kubebuilder:scaffold:imports
 )
 
 const inClusterNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-
-var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
-)
-
-func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(cmapi.AddToScheme(scheme))
-	utilruntime.Must(sampleissuerv1alpha1.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme
-}
 
 func main() {
 	var metricsAddr string
@@ -80,25 +71,33 @@ func main() {
 
 	flag.Parse()
 
+	logr := zap.New(zap.UseFlagOptions(&opts))
+
+	klog.SetLogger(logr)
+	ctrl.SetLogger(logr)
+
+	logr.Info("Version", "version", version.Version)
+
 	if printVersion {
-		fmt.Println(version.Version)
 		return
 	}
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	setupLog := logr.WithName("setup")
 
-	if clusterResourceNamespace == "" {
-		var err error
-		clusterResourceNamespace, err = getInClusterNamespace()
-		if err != nil {
-			if errors.Is(err, errNotInCluster) {
-				setupLog.Error(err, "please supply --cluster-resource-namespace")
-			} else {
-				setupLog.Error(err, "unexpected error while getting in-cluster Namespace")
-			}
-			os.Exit(1)
+	if err := getInClusterNamespace(&clusterResourceNamespace); err != nil {
+		if errors.Is(err, errNotInCluster) {
+			setupLog.Error(err, "please supply --cluster-resource-namespace")
+		} else {
+			setupLog.Error(err, "unexpected error while getting in-cluster Namespace")
 		}
+		os.Exit(1)
 	}
+
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(cmapi.AddToScheme(scheme))
+	utilruntime.Must(sampleissuerv1alpha1.AddToScheme(scheme))
+	// +kubebuilder:scaffold:scheme
 
 	setupLog.Info(
 		"starting",
@@ -109,9 +108,13 @@ func main() {
 	)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Scheme: scheme,
+		Metrics: server.Options{
+			BindAddress: metricsAddr,
+		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Port: 9443,
+		}),
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "54c549fd.example.com",
@@ -125,49 +128,38 @@ func main() {
 		// the manager stops, so would be fine to enable this option. However,
 		// if you are doing or is intended to do any operation such as perform cleanups
 		// after the manager stops then its usage might be unsafe.
-		// LeaderElectionReleaseOnCancel: true,
+		LeaderElectionReleaseOnCancel: true,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	if err = (&controllers.IssuerReconciler{
-		Kind:                     "Issuer",
-		Client:                   mgr.GetClient(),
-		Scheme:                   mgr.GetScheme(),
-		ClusterResourceNamespace: clusterResourceNamespace,
+	ctx, cancel := context.WithCancel(ctrl.SetupSignalHandler())
+	defer cancel()
+
+	if err = (&controllers.Issuer{
 		HealthCheckerBuilder:     signer.ExampleHealthCheckerFromIssuerAndSecretData,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Issuer")
-		os.Exit(1)
-	}
-	if err = (&controllers.IssuerReconciler{
-		Kind:                     "ClusterIssuer",
-		Client:                   mgr.GetClient(),
-		Scheme:                   mgr.GetScheme(),
+		SignerBuilder:            signer.ExampleSignerFromIssuerAndSecretData,
 		ClusterResourceNamespace: clusterResourceNamespace,
-		HealthCheckerBuilder:     signer.ExampleHealthCheckerFromIssuerAndSecretData,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterIssuer")
+	}).SetupWithManager(ctx, mgr); err != nil {
+		setupLog.Error(err, "unable to create Signer controllers")
 		os.Exit(1)
 	}
 
-	if err = (&controllers.CertificateRequestReconciler{
-		Client:                   mgr.GetClient(),
-		Scheme:                   mgr.GetScheme(),
-		ClusterResourceNamespace: clusterResourceNamespace,
-		SignerBuilder:            signer.ExampleSignerFromIssuerAndSecretData,
-		CheckApprovedCondition:   !disableApprovedCheck,
-		Clock:                    clock.RealClock{},
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CertificateRequest")
-		os.Exit(1)
-	}
 	// +kubebuilder:scaffold:builder
 
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to set up health check")
+		os.Exit(1)
+	}
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to set up ready check")
+		os.Exit(1)
+	}
+
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
@@ -176,20 +168,26 @@ func main() {
 var errNotInCluster = errors.New("not running in-cluster")
 
 // Copied from controller-runtime/pkg/leaderelection
-func getInClusterNamespace() (string, error) {
+func getInClusterNamespace(clusterResourceNamespace *string) error {
+	if *clusterResourceNamespace != "" {
+		return nil
+	}
+
 	// Check whether the namespace file exists.
 	// If not, we are not running in cluster so can't guess the namespace.
 	_, err := os.Stat(inClusterNamespacePath)
 	if os.IsNotExist(err) {
-		return "", errNotInCluster
+		return errNotInCluster
 	} else if err != nil {
-		return "", fmt.Errorf("error checking namespace file: %w", err)
+		return fmt.Errorf("error checking namespace file: %w", err)
 	}
 
 	// Load the namespace file and return its content
-	namespace, err := ioutil.ReadFile(inClusterNamespacePath)
+	namespace, err := os.ReadFile(inClusterNamespacePath)
 	if err != nil {
-		return "", fmt.Errorf("error reading namespace file: %w", err)
+		return fmt.Errorf("error reading namespace file: %w", err)
 	}
-	return string(namespace), nil
+	*clusterResourceNamespace = string(namespace)
+
+	return nil
 }

@@ -5,52 +5,41 @@ metadata:
   creationTimestamp: null
   name: manager-role
 rules:
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cert-manager.io
-  resources:
-  - certificaterequests
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cert-manager.io
-  resources:
-  - certificaterequests/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - sample-issuer.example.com
-  resources:
-  - clusterissuers
-  - issuers
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - sample-issuer.example.com
-  resources:
-  - clusterissuers/status
-  - issuers/status
-  verbs:
-  - get
-  - patch
-  - update
+- apiGroups: [ "" ]
+  resources: [ "events" ]
+  verbs: ["create", "patch"]
+
+- apiGroups: [ "" ]
+  resources: [ "secrets" ]
+  verbs: ["get", "list", "watch"]
+
+- apiGroups: [ "sample-issuer.example.com" ]
+  resources: [ "clusterissuers", "issuers" ]
+  verbs: ["get", "list", "watch"]
+
+- apiGroups: [ "sample-issuer.example.com" ]
+  resources: [ "clusterissuers/status", "issuers/status" ]
+  verbs: [ "patch" ]
+
+
+- apiGroups: [ "cert-manager.io" ]
+  resources: [ "certificaterequests" ]
+  verbs: [ "get", "list", "watch" ]
+
+- apiGroups: [ "cert-manager.io" ]
+  resources: [ "certificaterequests/status" ]
+  verbs: [ "patch" ]
+
+- apiGroups: [ "certificates.k8s.io" ]
+  resources: [ "certificatesigningrequests" ]
+  verbs: [ "get", "list", "watch" ]
+
+- apiGroups: [ "certificates.k8s.io" ]
+  resources: [ "certificatesigningrequests/status" ]
+  verbs: [ "patch" ]
+
+- apiGroups: [ "certificates.k8s.io" ]
+  resources: [ "signers" ]
+  verbs: [ "sign" ]
+  resourceNames:
+  - clusterissuers.sample-issuer.example.com/*
