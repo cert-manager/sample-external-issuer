@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2023 The cert-manager Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,11 +21,8 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
-	"math/big"
 	"time"
 )
-
-var serialNumberLimit = new(big.Int).Lsh(big.NewInt(1), 128)
 
 // CertificateAuthority implements a certificate authority that supports policy
 // based signing. It's used by the signing controller.
@@ -43,7 +40,7 @@ type CertificateAuthority struct {
 
 // Sign signs a certificate request, applying a SigningPolicy and returns a DER
 // encoded x509 certificate.
-func (ca *CertificateAuthority) Sign(crDER []byte, policy SigningPolicy) ([]byte, error) {
+func (ca *CertificateAuthority) Sign(certTemplate *x509.Certificate, policy SigningPolicy) ([]byte, error) {
 	now := time.Now()
 	if ca.Now != nil {
 		now = ca.Now()
@@ -54,46 +51,21 @@ func (ca *CertificateAuthority) Sign(crDER []byte, policy SigningPolicy) ([]byte
 		return nil, fmt.Errorf("the signer has expired: NotAfter=%v", ca.Certificate.NotAfter)
 	}
 
-	cr, err := x509.ParseCertificateRequest(crDER)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse certificate request: %v", err)
-	}
-	if err := cr.CheckSignature(); err != nil {
-		return nil, fmt.Errorf("unable to verify certificate request signature: %v", err)
-	}
-
-	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
-	if err != nil {
-		return nil, fmt.Errorf("unable to generate a serial number for %s: %v", cr.Subject.CommonName, err)
-	}
-
-	tmpl := &x509.Certificate{
-		SerialNumber:       serialNumber,
-		Subject:            cr.Subject,
-		DNSNames:           cr.DNSNames,
-		IPAddresses:        cr.IPAddresses,
-		EmailAddresses:     cr.EmailAddresses,
-		URIs:               cr.URIs,
-		PublicKeyAlgorithm: cr.PublicKeyAlgorithm,
-		PublicKey:          cr.PublicKey,
-		Extensions:         cr.Extensions,
-		ExtraExtensions:    cr.ExtraExtensions,
-		NotBefore:          nbf,
-	}
-	if err := policy.apply(tmpl); err != nil {
+	if err := policy.apply(certTemplate); err != nil {
 		return nil, err
 	}
 
-	if !tmpl.NotAfter.Before(ca.Certificate.NotAfter) {
-		tmpl.NotAfter = ca.Certificate.NotAfter
+	if !certTemplate.NotAfter.Before(ca.Certificate.NotAfter) {
+		certTemplate.NotAfter = ca.Certificate.NotAfter
 	}
 	if !now.Before(ca.Certificate.NotAfter) {
 		return nil, fmt.Errorf("refusing to sign a certificate that expired in the past")
 	}
 
-	der, err := x509.CreateCertificate(rand.Reader, tmpl, ca.Certificate, cr.PublicKey, ca.PrivateKey)
+	der, err := x509.CreateCertificate(rand.Reader, certTemplate, ca.Certificate, certTemplate.PublicKey, ca.PrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign certificate: %v", err)
 	}
+
 	return der, nil
 }

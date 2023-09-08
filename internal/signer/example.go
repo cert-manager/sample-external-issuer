@@ -1,31 +1,37 @@
+/*
+Copyright 2023 The cert-manager Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package signer
 
 import (
+	"crypto/x509"
 	"encoding/pem"
 	"time"
 
 	capi "k8s.io/api/certificates/v1beta1"
 
 	sampleissuerapi "github.com/cert-manager/sample-external-issuer/api/v1alpha1"
+	"github.com/cert-manager/sample-external-issuer/internal/controllers"
 )
 
-type HealthChecker interface {
-	Check() error
-}
-
-type HealthCheckerBuilder func(*sampleissuerapi.IssuerSpec, map[string][]byte) (HealthChecker, error)
-
-type Signer interface {
-	Sign([]byte) ([]byte, error)
-}
-
-type SignerBuilder func(*sampleissuerapi.IssuerSpec, map[string][]byte) (Signer, error)
-
-func ExampleHealthCheckerFromIssuerAndSecretData(*sampleissuerapi.IssuerSpec, map[string][]byte) (HealthChecker, error) {
+func ExampleHealthCheckerFromIssuerAndSecretData(*sampleissuerapi.IssuerSpec, map[string][]byte) (controllers.HealthChecker, error) {
 	return &exampleSigner{}, nil
 }
 
-func ExampleSignerFromIssuerAndSecretData(*sampleissuerapi.IssuerSpec, map[string][]byte) (Signer, error) {
+func ExampleSignerFromIssuerAndSecretData(*sampleissuerapi.IssuerSpec, map[string][]byte) (controllers.Signer, error) {
 	return &exampleSigner{}, nil
 }
 
@@ -88,11 +94,7 @@ YcXl/jdU/2nHdY6r7m6xIapxs0hdDMF/lML2SszUIukZw73NJp3x7L9enCY=
 	duration = time.Hour * 24 * 365
 )
 
-func (o *exampleSigner) Sign(csrBytes []byte) ([]byte, error) {
-	csr, err := parseCSR(csrBytes)
-	if err != nil {
-		return nil, err
-	}
+func (o *exampleSigner) Sign(certTemplate *x509.Certificate) ([]byte, error) {
 	key, err := parseKey(keyPEM)
 	if err != nil {
 		return nil, err
@@ -101,12 +103,14 @@ func (o *exampleSigner) Sign(csrBytes []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	ca := &CertificateAuthority{
 		Certificate: cert,
 		PrivateKey:  key,
 		Backdate:    5 * time.Minute,
 	}
-	crtDER, err := ca.Sign(csr.Raw, PermissiveSigningPolicy{
+
+	crtDER, err := ca.Sign(certTemplate, PermissiveSigningPolicy{
 		TTL: duration,
 		Usages: []capi.KeyUsage{
 			capi.UsageServerAuth,
@@ -115,6 +119,7 @@ func (o *exampleSigner) Sign(csrBytes []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return pem.EncodeToMemory(&pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: crtDER,
