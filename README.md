@@ -535,7 +535,7 @@ Here are some example values:
  * Tag Version: `v0.1.0-alpha.0`, `v0.1.0` for example.
  * Target: `main`
  * Release Title: `Release v0.1.0-alpha.2`
- * Description: (optional) a short summery of the changes since the last release.
+ * Description: (optional) a short summary of the changes since the last release.
 
 Click the `Publish release` button to trigger the automated release process:
 
