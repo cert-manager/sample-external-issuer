@@ -121,6 +121,8 @@ func (o *Issuer) getSecretData(ctx context.Context, issuerSpec *sampleissuerapi.
 	return secret.Data, nil
 }
 
+// Check checks that the CA it is available. Certificate requests will not be
+// processed until this check passes.
 func (o *Issuer) Check(ctx context.Context, issuerObject issuerapi.Issuer) error {
 	issuerSpec, namespace, err := o.getIssuerDetails(issuerObject)
 	if err != nil {
@@ -131,6 +133,12 @@ func (o *Issuer) Check(ctx context.Context, issuerObject issuerapi.Issuer) error
 	return err
 }
 
+// Sign returns a signed certificate for the supplied CertificateRequestObject (a cert-manager CertificateRequest resource or
+// a kubernetes CertificateSigningRequest resource). The CertificateRequestObject contains a GetRequest method that returns
+// a certificate template that can be used as a starting point for the generated certificate.
+// The Sign method should return a PEMBundle containing the signed certificate and any intermediate certificates (see the PEMBundle docs for more information).
+// If the Sign method returns an error, the issuance will be retried until the MaxRetryDuration is reached.
+// Special errors and cases can be found in the issuer-lib README: https://github.com/cert-manager/issuer-lib/tree/main?tab=readme-ov-file#how-it-works
 func (o *Issuer) Sign(ctx context.Context, cr signer.CertificateRequestObject, issuerObject issuerapi.Issuer) (signer.PEMBundle, error) {
 	issuerSpec, namespace, err := o.getIssuerDetails(issuerObject)
 	if err != nil {

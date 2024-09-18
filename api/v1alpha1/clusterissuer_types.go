@@ -45,10 +45,21 @@ func (vi *SampleClusterIssuer) GetStatus() *v1alpha1.IssuerStatus {
 	return &vi.Status
 }
 
+// GetIssuerTypeIdentifier returns a string that uniquely identifies the
+// issuer type. This should be a constant across all instances of this
+// issuer type. This string is used as a prefix when determining the
+// issuer type for a Kubernetes CertificateSigningRequest resource based
+// on the issuerName field. The value should be formatted as follows:
+// "<issuer resource (plural)>.<issuer group>". For example, the value
+// "simpleclusterissuers.issuer.cert-manager.io" will match all CSRs
+// with an issuerName set to eg. "simpleclusterissuers.issuer.cert-manager.io/issuer1".
 func (vi *SampleClusterIssuer) GetIssuerTypeIdentifier() string {
+	// ACTION REQUIRED: Change this to a unique string that identifies your cluster issuer
 	return "sampleclusterissuers.sample-issuer.example.com"
 }
 
+// issuer-lib requires that we implement the Issuer interface
+// so that it can interact with our Issuer resource.
 var _ v1alpha1.Issuer = &SampleClusterIssuer{}
 
 //+kubebuilder:object:root=true
