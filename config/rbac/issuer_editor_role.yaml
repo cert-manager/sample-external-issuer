@@ -1,13 +1,13 @@
-# permissions for end users to edit issuers.
+# permissions for end users to edit sampleissuers.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: issuer-editor-role
+  name: sampleissuer-editor-role
 rules:
 - apiGroups:
   - sample-issuer.example.com
   resources:
-  - issuers
+  - sampleissuers
   verbs:
   - create
   - delete
@@ -19,6 +19,6 @@ rules:
 - apiGroups:
   - sample-issuer.example.com
   resources:
-  - issuers/status
+  - sampleissuers/status
   verbs:
   - get

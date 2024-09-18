@@ -4,15 +4,15 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.1
-  name: clusterissuers.sample-issuer.example.com
+  name: sampleissuers.sample-issuer.example.com
 spec:
   group: sample-issuer.example.com
   names:
-    kind: ClusterIssuer
-    listKind: ClusterIssuerList
-    plural: clusterissuers
-    singular: clusterissuer
-  scope: Cluster
+    kind: SampleIssuer
+    listKind: SampleIssuerList
+    plural: sampleissuers
+    singular: sampleissuer
+  scope: Namespaced
   versions:
   - additionalPrinterColumns:
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
@@ -39,7 +39,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ClusterIssuer is the Schema for the clusterissuers API
+        description: SampleIssuer is the Schema for the issuers API
         properties:
           apiVersion:
             description: |-
@@ -59,12 +59,12 @@ spec:
           metadata:
             type: object
           spec:
-            description: IssuerSpec defines the desired state of Issuer
+            description: IssuerSpec defines the desired state of SampleIssuer
             properties:
               authSecretName:
                 description: |-
                   A reference to a Secret in the same namespace as the referent. If the
-                  referent is a ClusterIssuer, the reference instead refers to the resource
+                  referent is a SampleClusterIssuer, the reference instead refers to the resource
                   with the given name in the configured 'cluster resource namespace', which
                   is set as a flag on the controller component (and defaults to the
                   namespace that the controller runs in).

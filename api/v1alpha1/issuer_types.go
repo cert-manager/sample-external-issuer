@@ -31,8 +31,8 @@ import (
 // +kubebuilder:printcolumn:name="Generation",type="integer",JSONPath=".metadata.generation"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
-// Issuer is the Schema for the issuers API
-type Issuer struct {
+// SampleIssuer is the Schema for the issuers API
+type SampleIssuer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -40,39 +40,39 @@ type Issuer struct {
 	Status v1alpha1.IssuerStatus `json:"status,omitempty"`
 }
 
-// IssuerSpec defines the desired state of Issuer
+// IssuerSpec defines the desired state of SampleIssuer
 type IssuerSpec struct {
 	// URL is the base URL for the endpoint of the signing service,
 	// for example: "https://sample-signer.example.com/api".
 	URL string `json:"url"`
 
 	// A reference to a Secret in the same namespace as the referent. If the
-	// referent is a ClusterIssuer, the reference instead refers to the resource
+	// referent is a SampleClusterIssuer, the reference instead refers to the resource
 	// with the given name in the configured 'cluster resource namespace', which
 	// is set as a flag on the controller component (and defaults to the
 	// namespace that the controller runs in).
 	AuthSecretName string `json:"authSecretName"`
 }
 
-func (vi *Issuer) GetStatus() *v1alpha1.IssuerStatus {
+func (vi *SampleIssuer) GetStatus() *v1alpha1.IssuerStatus {
 	return &vi.Status
 }
 
-func (vi *Issuer) GetIssuerTypeIdentifier() string {
-	return "issuers.sample-issuer.example.com"
+func (vi *SampleIssuer) GetIssuerTypeIdentifier() string {
+	return "sampleissuers.sample-issuer.example.com"
 }
 
-var _ v1alpha1.Issuer = &Issuer{}
+var _ v1alpha1.Issuer = &SampleIssuer{}
 
 //+kubebuilder:object:root=true
 
-// IssuerList contains a list of Issuer
-type IssuerList struct {
+// SampleIssuerList contains a list of Issuer
+type SampleIssuerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Issuer `json:"items"`
+	Items           []SampleIssuer `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Issuer{}, &IssuerList{})
+	SchemeBuilder.Register(&SampleIssuer{}, &SampleIssuerList{})
 }

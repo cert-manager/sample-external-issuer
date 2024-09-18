@@ -89,13 +89,13 @@ deploy-cert-manager: ## Deploy cert-manager in the configured Kubernetes cluster
 e2e: ## Run E2E tests
 	kubectl apply --filename config/samples
 
-	kubectl wait --for=condition=Ready --timeout=5s issuers.sample-issuer.example.com issuer-sample
-	kubectl wait --for=condition=Ready --timeout=5s  certificaterequests.cert-manager.io issuer-sample
-	kubectl wait --for=condition=Ready --timeout=5s  certificates.cert-manager.io certificate-by-issuer
+	kubectl wait --for=condition=Ready --timeout=5s sampleissuers.sample-issuer.example.com sampleissuer-sample
+	kubectl wait --for=condition=Ready --timeout=5s  certificaterequests.cert-manager.io sampleissuer-sample
+	kubectl wait --for=condition=Ready --timeout=5s  certificates.cert-manager.io certificate-by-sampleissuer
 
-	kubectl wait --for=condition=Ready --timeout=5s clusterissuers.sample-issuer.example.com clusterissuer-sample
-	kubectl wait --for=condition=Ready --timeout=5s  certificaterequests.cert-manager.io clusterissuer-sample
-	kubectl wait --for=condition=Ready --timeout=5s  certificates.cert-manager.io certificate-by-clusterissuer
+	kubectl wait --for=condition=Ready --timeout=5s sampleclusterissuers.sample-issuer.example.com sampleclusterissuer-sample
+	kubectl wait --for=condition=Ready --timeout=5s  certificaterequests.cert-manager.io sampleclusterissuer-sample
+	kubectl wait --for=condition=Ready --timeout=5s  certificates.cert-manager.io certificate-by-sampleclusterissuer
 
 	kubectl delete --filename config/samples
 

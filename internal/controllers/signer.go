@@ -71,8 +71,8 @@ func (s Issuer) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	s.client = mgr.GetClient()
 
 	return (&controllers.CombinedController{
-		IssuerTypes:        []issuerapi.Issuer{&sampleissuerapi.Issuer{}},
-		ClusterIssuerTypes: []issuerapi.Issuer{&sampleissuerapi.ClusterIssuer{}},
+		IssuerTypes:        []issuerapi.Issuer{&sampleissuerapi.SampleIssuer{}},
+		ClusterIssuerTypes: []issuerapi.Issuer{&sampleissuerapi.SampleClusterIssuer{}},
 
 		FieldOwner:       "sampleissuer.cert-manager.io",
 		MaxRetryDuration: 1 * time.Minute,
@@ -85,9 +85,9 @@ func (s Issuer) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 
 func (o *Issuer) getIssuerDetails(issuerObject issuerapi.Issuer) (*sampleissuerapi.IssuerSpec, string, error) {
 	switch t := issuerObject.(type) {
-	case *sampleissuerapi.Issuer:
+	case *sampleissuerapi.SampleIssuer:
 		return &t.Spec, issuerObject.GetNamespace(), nil
-	case *sampleissuerapi.ClusterIssuer:
+	case *sampleissuerapi.SampleClusterIssuer:
 		return &t.Spec, o.ClusterResourceNamespace, nil
 	default:
 		// A permanent error will cause the Issuer to not retry until the

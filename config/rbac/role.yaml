@@ -14,11 +14,11 @@ rules:
   verbs: ["get", "list", "watch"]
 
 - apiGroups: [ "sample-issuer.example.com" ]
-  resources: [ "clusterissuers", "issuers" ]
+  resources: [ "sampleclusterissuers", "sampleissuers" ]
   verbs: ["get", "list", "watch"]
 
 - apiGroups: [ "sample-issuer.example.com" ]
-  resources: [ "clusterissuers/status", "issuers/status" ]
+  resources: [ "sampleclusterissuers/status", "sampleissuers/status" ]
   verbs: [ "patch" ]
 
 
@@ -42,4 +42,4 @@ rules:
   resources: [ "signers" ]
   verbs: [ "sign" ]
   resourceNames:
-  - clusterissuers.sample-issuer.example.com/*
+  - sampleclusterissuers.sample-issuer.example.com/*

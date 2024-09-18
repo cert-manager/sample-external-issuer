@@ -32,8 +32,8 @@ import (
 // +kubebuilder:printcolumn:name="Generation",type="integer",JSONPath=".metadata.generation"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
-// ClusterIssuer is the Schema for the clusterissuers API
-type ClusterIssuer struct {
+// SampleClusterIssuer is the Schema for the clusterissuers API
+type SampleClusterIssuer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -41,25 +41,25 @@ type ClusterIssuer struct {
 	Status v1alpha1.IssuerStatus `json:"status,omitempty"`
 }
 
-func (vi *ClusterIssuer) GetStatus() *v1alpha1.IssuerStatus {
+func (vi *SampleClusterIssuer) GetStatus() *v1alpha1.IssuerStatus {
 	return &vi.Status
 }
 
-func (vi *ClusterIssuer) GetIssuerTypeIdentifier() string {
-	return "clusterissuers.sample-issuer.example.com"
+func (vi *SampleClusterIssuer) GetIssuerTypeIdentifier() string {
+	return "sampleclusterissuers.sample-issuer.example.com"
 }
 
-var _ v1alpha1.Issuer = &ClusterIssuer{}
+var _ v1alpha1.Issuer = &SampleClusterIssuer{}
 
 //+kubebuilder:object:root=true
 
-// ClusterIssuerList contains a list of ClusterIssuer
-type ClusterIssuerList struct {
+// SampleClusterIssuerList contains a list of ClusterIssuer
+type SampleClusterIssuerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ClusterIssuer `json:"items"`
+	Items           []SampleClusterIssuer `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&ClusterIssuer{}, &ClusterIssuerList{})
+	SchemeBuilder.Register(&SampleClusterIssuer{}, &SampleClusterIssuerList{})
 }

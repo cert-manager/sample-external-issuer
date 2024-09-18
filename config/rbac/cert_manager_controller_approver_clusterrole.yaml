@@ -11,5 +11,5 @@ rules:
   verbs:
   - approve
   resourceNames:
-  - issuers.sample-issuer.example.com/*
-  - clusterissuers.sample-issuer.example.com/*
+  - sampleissuers.sample-issuer.example.com/*
+  - sampleclusterissuers.sample-issuer.example.com/*
