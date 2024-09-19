@@ -1,13 +1,13 @@
-# permissions for end users to edit clusterissuers.
+# permissions for end users to edit sampleclusterissuers.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: clusterissuer-editor-role
+  name: sampleclusterissuer-editor-role
 rules:
 - apiGroups:
   - sample-issuer.example.com
   resources:
-  - clusterissuers
+  - sampleclusterissuers
   verbs:
   - create
   - delete
@@ -19,6 +19,6 @@ rules:
 - apiGroups:
   - sample-issuer.example.com
   resources:
-  - clusterissuers/status
+  - sampleclusterissuers/status
   verbs:
   - get

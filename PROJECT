@@ -9,10 +9,10 @@ projectName: sample-external-issuer
 repo: github.com/cert-manager/sample-external-issuer
 resources:
 - group: sample-issuer
-  kind: Issuer
+  kind: SampleIssuer
   version: v1alpha1
 - group: sample-issuer
-  kind: ClusterIssuer
+  kind: SampleClusterIssuer
   version: v1alpha1
 version: "2"
 version: "3"
