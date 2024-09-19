@@ -1,0 +1,143 @@
+{{- if .Values.crds.enabled }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: "sampleissuers.sample-issuer.example.com"
+  {{- if .Values.crds.keep }}
+  annotations:
+    helm.sh/resource-policy: keep
+  {{- end }}
+  labels:
+    {{- include "sample-external-issuer.labels" . | nindent 4 }}
+spec:
+  group: sample-issuer.example.com
+  names:
+    kind: SampleIssuer
+    listKind: SampleIssuerList
+    plural: sampleissuers
+    singular: sampleissuer
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].reason
+          name: Reason
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].message
+          name: Message
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].lastTransitionTime
+          name: LastTransition
+          type: date
+        - jsonPath: .status.conditions[?(@.type=="Ready")].observedGeneration
+          name: ObservedGeneration
+          type: integer
+        - jsonPath: .metadata.generation
+          name: Generation
+          type: integer
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: SampleIssuer is the Schema for the issuers API
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: IssuerSpec defines the desired state of SampleIssuer
+              properties:
+                authSecretName:
+                  description: |-
+                    A reference to a Secret in the same namespace as the referent. If the
+                    referent is a SampleClusterIssuer, the reference instead refers to the resource
+                    with the given name in the configured 'cluster resource namespace', which
+                    is set as a flag on the controller component (and defaults to the
+                    namespace that the controller runs in).
+                  type: string
+                url:
+                  description: |-
+                    URL is the base URL for the endpoint of the signing service,
+                    for example: "https://sample-signer.example.com/api".
+                  type: string
+              required:
+                - authSecretName
+                - url
+              type: object
+            status:
+              properties:
+                conditions:
+                  description: |-
+                    List of status conditions to indicate the status of an Issuer.
+                    Known condition types are `Ready`.
+                  items:
+                    description: IssuerCondition contains condition information for an Issuer.
+                    properties:
+                      lastTransitionTime:
+                        description: |-
+                          LastTransitionTime is the timestamp corresponding to the last status
+                          change of this condition.
+                        format: date-time
+                        type: string
+                      message:
+                        description: |-
+                          Message is a human readable description of the details of the last
+                          transition, complementing reason.
+                        type: string
+                      observedGeneration:
+                        description: |-
+                          If set, this represents the .metadata.generation that the condition was
+                          set based upon.
+                          For instance, if .metadata.generation is currently 12, but the
+                          .status.condition[x].observedGeneration is 9, the condition is out of date
+                          with respect to the current state of the Issuer.
+                        format: int64
+                        type: integer
+                      reason:
+                        description: |-
+                          Reason is a brief machine readable explanation for the condition's last
+                          transition.
+                        type: string
+                      status:
+                        description: Status of the condition, one of (`True`, `False`, `Unknown`).
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description: Type of the condition, known values are (`Ready`).
+                        type: string
+                    required:
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+{{- end }}

@@ -40,11 +40,8 @@ var (
 	errHealthCheckerBuilder = errors.New("failed to build the healthchecker")
 	errHealthCheckerCheck   = errors.New("healthcheck failed")
 
-	errIssuerRef      = errors.New("error interpreting issuerRef")
-	errGetIssuer      = errors.New("error getting issuer")
-	errIssuerNotReady = errors.New("issuer is not ready")
-	errSignerBuilder  = errors.New("failed to build the signer")
-	errSignerSign     = errors.New("failed to sign")
+	errSignerBuilder = errors.New("failed to build the signer")
+	errSignerSign    = errors.New("failed to sign")
 )
 
 type HealthChecker interface {
