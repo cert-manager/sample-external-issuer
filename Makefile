@@ -16,7 +16,7 @@ IMG ?= ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${VERSION}
 
 
 # cert-manager
-CERT_MANAGER_VERSION ?= 1.11.1
+CERT_MANAGER_VERSION ?= 1.16.0-beta.0
 
 
 INSTALL_YAML ?= build/install.yaml
