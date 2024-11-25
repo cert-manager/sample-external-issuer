@@ -196,7 +196,7 @@ but also a table of the recent events associated with that resource.
 The aim is to produce helpful debug output that looks like this:
 
 ```
-$ kubectl describe clusterissuers.sample-issuer.example.com clusterissuer-sample
+$ kubectl describe sampleclusterissuers.sample-issuer.example.com clusterissuer-sample
 ...
     Type:                  Ready
 Events:

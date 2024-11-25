@@ -1,0 +1,29 @@
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+{{ include "sample-external-issuer.labels" . | indent 4 }}
+  name: {{ include "sample-external-issuer.name" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "sample-external-issuer.name" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "sample-external-issuer.name" . }}
+  namespace: {{ .Release.Namespace }}
+---
+{{- if .Values.app.approval.enabled }}
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+{{ include "sample-external-issuer.labels" . | indent 4 }}
+  name: {{ include "sample-external-issuer.name" . }}:approval
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "sample-external-issuer.name" . }}:approval
+subjects:
+{{ .Values.app.approval.subjects | toYaml | indent 2}}
+{{- end }}

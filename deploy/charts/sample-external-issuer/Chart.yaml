@@ -1,0 +1,28 @@
+apiVersion: v2
+
+name: sample-external-issuer
+type: application
+description: A Helm chart for cert-manager/sample-external-issuer
+
+home: https://github.com/cert-manager/sample-external-issuer
+icon: https://raw.githubusercontent.com/cert-manager/community/4d35a69437d21b76322157e6284be4cd64e6d2b7/logo/logo-small.png
+keywords:
+  - cert-manager
+  - issuer
+annotations:
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/category: security
+  artifacthub.io/recommendations: |
+    - url: https://artifacthub.io/packages/helm/cert-manager/cert-manager
+  artifacthub.io/prerelease: "false"
+maintainers:
+- name: cert-manager-maintainers
+  email: cert-manager-maintainers@googlegroups.com
+  url: https://cert-manager.io
+sources:
+- https://github.com/cert-manager/sample-external-issuer
+
+kubeVersion: ">= 1.25.0-0"  # The -0 is required for EKS: https://github.com/helm/helm/issues/10375
+
+appVersion: v0.0.0
+version: v0.0.0

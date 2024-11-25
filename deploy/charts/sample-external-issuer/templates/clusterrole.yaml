@@ -1,0 +1,108 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+{{ include "sample-external-issuer.labels" . | indent 4 }}
+  name: {{ include "sample-external-issuer.name" . }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+
+- apiGroups:
+  - sample-issuer.example.com
+  resources:
+  - sampleclusterissuers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - sample-issuer.example.com
+  resources:
+  - sampleclusterissuers/status
+  verbs:
+  - patch
+- apiGroups:
+  - sample-issuer.example.com
+  resources:
+  - sampleissuers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - sample-issuer.example.com
+  resources:
+  - sampleissuers/status
+  verbs:
+  - patch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificaterequests
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificaterequests/status
+  verbs:
+  - patch
+
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - certificates.k8s.io"
+  resources:
+  - certificatesigningrequests/status
+  verbs:
+  - patch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - signers
+  verbs:
+  - sign
+  resourceNames:
+  - sampleclusterissuers.sample-issuer.example.com/*
+
+---
+{{- if .Values.app.approval.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+{{ include "sample-external-issuer.labels" . | indent 4 }}
+  name: {{ include "sample-external-issuer.name" . }}:approval
+rules:
+- apiGroups:
+  - cert-manager.io
+  resourceNames:
+  - sampleclusterissuers.sample-issuer.example.com/*
+  - sampleissuers.sample-issuer.example.com/*
+  resources:
+  - signers
+  verbs:
+  - approve
+{{- end }}

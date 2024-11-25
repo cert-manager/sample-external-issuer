@@ -1,0 +1,15 @@
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "sample-external-issuer.name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "sample-external-issuer.labels" . | indent 4 }}
+rules:
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["create"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "update"]
+  resourceNames: ["54c549fd.sample-external-issuer"]

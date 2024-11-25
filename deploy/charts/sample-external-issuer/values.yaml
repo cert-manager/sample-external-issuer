@@ -1,0 +1,124 @@
+crds:
+  # This option decides if the CRDs should be installed
+  # as part of the Helm installation.
+  enabled: true
+
+  # This option makes it so that the "helm.sh/resource-policy": keep
+  # annotation is added to the CRD. This will prevent Helm from uninstalling
+  # the CRD when the Helm release is uninstalled.
+  # WARNING: when the CRDs are removed, all sample-external-issuer custom resources
+  # (ClusterIssuer, Issuer, ...) will be removed too by the garbage collector.
+  keep: true
+
+# Number of replicas of sample-external-issuer to run.
+replicaCount: 1
+
+image:
+  # Target image repository.
+  repository: quay.io/jetstack/sample-external-issuer
+  # Target image registry. Will be prepended to the target image repositry if set.
+  registry:
+
+  # Target image version tag. Defaults to the chart's appVersion.
+  tag:
+
+  # Target image digest. Will override any tag if set.
+  # for example:
+  # digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
+  digest:
+
+  # Kubernetes imagePullPolicy on Deployment.
+  pullPolicy: IfNotPresent
+
+# Optional secrets used for pulling the sample-external-issuer container image.
+imagePullSecrets: []
+
+# Labels to apply to all resources
+commonLabels: {}
+
+serviceAccount:
+  # Optional annotations to add to the service account
+  annotations: {}
+
+app:
+  # Verbosity of sample-external-issuer logging.
+  logLevel: 1 # 1-5
+
+  # Handle RBAC permissions for approving Sample External Issuer
+  # CertificateRequests.
+  approval:
+    # enabled determines whether the ClusterRole and ClusterRoleBinding for
+    # approval is created. You will want to disable this if you are managing
+    # approval RBAC elsewhere from this chart, for example if you create them
+    # separately for all installed issuers.
+    enabled: true
+
+    # subjects is the subject that the approval RBAC permissions will be
+    # bound to. Here we are binding them to cert-manager's ServiceAccount so
+    # that the default approve all approver has the permissions to do so. You
+    # will want to change this subject to approver-policy's ServiceAccount if
+    # using that project (recommended).
+    #   https://cert-manager.io/docs/projects/approver-policy
+    #   name: cert-manager-approver-policy
+    #   namespace: cert-manager
+    subjects:
+    - kind: ServiceAccount
+      name: cert-manager
+      namespace: cert-manager
+
+  # metrics controls exposing sample-external-issuer metrics.
+  metrics:
+    # Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'.
+    port: 9402
+
+# Optional additional annotations to add to the sample-external-issuer Deployment
+deploymentAnnotations: {}
+
+# Optional additional annotations to add to the sample-external-issuer Pods
+podAnnotations: {}
+
+# Optional additional labels to add to the sample-external-issuer Pods
+podLabels: {}
+
+# Kubernetes pod resource requests/limits for sample-external-issuer.
+# For example:
+#  limits:
+#    cpu: 100m
+#    memory: 128Mi
+#  requests:
+#    cpu: 100m
+#    memory: 128Mi
+resources: {}
+
+# Kubernetes node selector: node labels for pod assignment
+# For example:
+#  kubernetes.io/os: linux
+nodeSelector: {}
+
+# Kubernetes affinity: constraints for pod assignment
+# For example:
+#  nodeAffinity:
+#    requiredDuringSchedulingIgnoredDuringExecution:
+#      nodeSelectorTerms:
+#      - matchExpressions:
+#        - key: foo.bar.com/role
+#          operator: In
+#          values:
+#          - master
+affinity: {}
+
+# Kubernetes pod tolerations for sample-external-issuer
+# For example:
+#  - operator: "Exists"
+tolerations: []
+
+# Optional priority class to be used for the sample-external-issuer pods.
+priorityClassName: ""
+
+# Override the "sample-external-issuer.name" value.
+# +docs:property
+# nameOverride: "my-sample-external-issuer"
+
+# Omit Helm-specific labels. This is useful when generating a static manifest
+# with `helm template`.
+omitHelmLabels: false
