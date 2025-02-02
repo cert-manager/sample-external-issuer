@@ -4,8 +4,8 @@ jobs:
   unit:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
@@ -13,13 +13,13 @@ jobs:
   e2e:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - run: make -j1 kind-cluster deploy-cert-manager docker-build kind-load deploy e2e
       - run: make kind-export-logs E2E_ARTIFACTS_DIRECTORY=build/artifacts/e2e-logs
         if: failure()
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: e2e-logs
