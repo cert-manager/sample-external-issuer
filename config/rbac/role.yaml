@@ -2,44 +2,73 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: manager-role
 rules:
-- apiGroups: [ "" ]
-  resources: [ "events" ]
-  verbs: ["create", "patch"]
-
-- apiGroups: [ "" ]
-  resources: [ "secrets" ]
-  verbs: ["get", "list", "watch"]
-
-- apiGroups: [ "sample-issuer.example.com" ]
-  resources: [ "sampleclusterissuers", "sampleissuers" ]
-  verbs: ["get", "list", "watch"]
-
-- apiGroups: [ "sample-issuer.example.com" ]
-  resources: [ "sampleclusterissuers/status", "sampleissuers/status" ]
-  verbs: [ "patch" ]
-
-
-- apiGroups: [ "cert-manager.io" ]
-  resources: [ "certificaterequests" ]
-  verbs: [ "get", "list", "watch" ]
-
-- apiGroups: [ "cert-manager.io" ]
-  resources: [ "certificaterequests/status" ]
-  verbs: [ "patch" ]
-
-- apiGroups: [ "certificates.k8s.io" ]
-  resources: [ "certificatesigningrequests" ]
-  verbs: [ "get", "list", "watch" ]
-
-- apiGroups: [ "certificates.k8s.io" ]
-  resources: [ "certificatesigningrequests/status" ]
-  verbs: [ "patch" ]
-
-- apiGroups: [ "certificates.k8s.io" ]
-  resources: [ "signers" ]
-  verbs: [ "sign" ]
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificaterequests
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificaterequests/status
+  verbs:
+  - patch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests/status
+  verbs:
+  - patch
+- apiGroups:
+  - certificates.k8s.io
   resourceNames:
   - sampleclusterissuers.sample-issuer.example.com/*
+  - sampleissuers.sample-issuer.example.com/*
+  resources:
+  - signers
+  verbs:
+  - sign
+- apiGroups:
+  - sample-issuer.example.com
+  resources:
+  - sampleclusterissuers
+  - sampleissuers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - sample-issuer.example.com
+  resources:
+  - sampleclusterissuers/status
+  - sampleissuers/status
+  verbs:
+  - patch

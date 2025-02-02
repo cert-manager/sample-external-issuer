@@ -4,15 +4,23 @@
 # More info: https://book.kubebuilder.io/reference/project-config.html
 domain: example.com
 layout:
-- go.kubebuilder.io/v3
+- go.kubebuilder.io/v4
 projectName: sample-external-issuer
 repo: github.com/cert-manager/sample-external-issuer
 resources:
-- group: sample-issuer
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: example.com
+  group: sample-issuer
   kind: SampleIssuer
+  path: github.com/cert-manager/sample-external-issuer/api/v1alpha1
   version: v1alpha1
-- group: sample-issuer
+- api:
+    crdVersion: v1
+  domain: example.com
+  group: sample-issuer
   kind: SampleClusterIssuer
+  path: github.com/cert-manager/sample-external-issuer/api/v1alpha1
   version: v1alpha1
-version: "2"
 version: "3"

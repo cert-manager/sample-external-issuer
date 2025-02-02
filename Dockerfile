@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.23 as builder
+FROM docker.io/golang:1.23 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -12,7 +12,7 @@ COPY go.sum go.sum
 RUN go mod download
 
 # Copy the go source
-COPY main.go main.go
+COPY cmd/main.go cmd/main.go
 COPY api/ api/
 COPY internal/ internal/
 
@@ -35,7 +35,7 @@ ARG VERSION
 RUN go build \
   -ldflags="-X=github.com/cert-manager/sample-external-issuer/internal/version.Version=${VERSION}" \
   -mod=readonly \
-  -o manager main.go
+  -o manager cmd/main.go
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
