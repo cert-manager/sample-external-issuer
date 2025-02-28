@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.17.1
   name: sampleissuers.sample-issuer.example.com
 spec:
   group: sample-issuer.example.com
@@ -39,7 +39,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: SampleIssuer is the Schema for the issuers API
+        description: SampleIssuer is the Schema for the sampleissuers API.
         properties:
           apiVersion:
             description: |-
