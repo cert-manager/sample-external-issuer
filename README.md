@@ -183,9 +183,7 @@ so we modify the `issuerutil` function to allow us to extract an `IssuerSpec` fr
 We want to make it easy to debug problems with the issuer,
 so in addition to setting Conditions on the Issuer, ClusterIssuer and CertificateRequest,
 we can provide more feedback to the user by logging Kubernetes Events.
-You may want to read more about [Application Introspection and Debugging][] before continuing.
-
-[Application Introspection and Debugging]: https://kubernetes.io/docs/tasks/debug-application-cluster/debug-application-introspection/
+You may want to read more about [Application Introspection and Debugging](https://kubernetes.io/docs/tasks/debug-application-cluster/debug-application-introspection/) before continuing.
 
 Kubernetes Events are saved to the API server on a best-effort basis,
 they are (usually) associated with some other Kubernetes resource,
@@ -223,11 +221,11 @@ Events:
 First add [record.EventRecorder][] attributes to the `IssuerReconciler` and to the `CertificateRequestReconciler`.
 And then in the Reconciler code, you can then generate an event by executing `r.recorder.Eventf(...)` whenever a significant change is made to the resource.
 
-[record.EventRecorder]: https://pkg.go.dev/k8s.io/client-go/tools/record#EventRecorder
+[record.EventRecorder](https://pkg.go.dev/k8s.io/client-go/tools/record#EventRecorder)
 
 You can also write unit tests to verify the Reconciler events by using a [record.FakeRecorder][].
 
-[record.FakeRecorder]: https://pkg.go.dev/k8s.io/client-go/tools/record#FakeRecorder
+[record.FakeRecorder](https://pkg.go.dev/k8s.io/client-go/tools/record#FakeRecorder)
 
 See [PR 10: Generate Kubernetes Events](https://github.com/cert-manager/sample-external-issuer/pull/10) for an example of how you might generate events in your issuer.
 
@@ -292,7 +290,7 @@ to ensure that it does not run as UID 0 (root) and fail to start the container i
 
 ### Release Process
 
-Visit the [GitHub New Release Page][] and fill in the form.
+Visit the [GitHub New Release Page](https://github.com/cert-manager/sample-external-issuer/releases) and fill in the form.
 Here are some example values:
 
  * Tag Version: `v0.1.0-alpha.0`, `v0.1.0` for example.
@@ -307,12 +305,12 @@ Click the `Publish release` button to trigger the automated release process:
 
 ## Links
 
-[External Issuer]: https://cert-manager.io/docs/contributing/external-issuers
-[issuer-lib]: https://github.com/cert-manager/issuer-lib
-[cert-manager Concepts Documentation]: https://cert-manager.io/docs/concepts
-[Kubebuilder Book]: https://book.kubebuilder.io
-[Kubebuilder Markers]: https://book.kubebuilder.io/reference/markers.html
-[Distroless Docker Image]: https://github.com/GoogleContainerTools/distroless
-[Configure a Security Context]: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-[kube-rbac-proxy]: https://github.com/brancz/kube-rbac-proxy
-[GitHub New Release Page]: https://github.com/cert-manager/sample-external-issuer/releases/new
+- [External Issuer](https://cert-manager.io/docs/contributing/external-issuers)
+- [issuer-lib](https://github.com/cert-manager/issuer-lib)
+- [cert-manager Concepts Documentation](https://cert-manager.io/docs/concepts)
+- [Kubebuilder Book](https://book.kubebuilder.io)
+- [Kubebuilder Markers](https://book.kubebuilder.io/reference/markers.html)
+- [Distroless Docker Image](https://github.com/GoogleContainerTools/distroless)
+- [Configure a Security Context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/)
+- [kube-rbac-proxy](https://github.com/brancz/kube-rbac-proxy)
+- [GitHub New Release Page](https://github.com/cert-manager/sample-external-issuer/releases/new)
