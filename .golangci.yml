@@ -26,7 +26,6 @@ linters:
       rules:
         - name: comment-spacings
   exclusions:
-    generated: lax
     rules:
       - linters:
           - lll
