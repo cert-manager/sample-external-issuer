@@ -7,7 +7,7 @@
 External issuers extend [cert-manager](https://cert-manager.io/) to issue certificates using APIs and services
 which aren't built into the cert-manager core.
 
-This repository provides an example of an [External Issuer] built using the [issuer-lib] library.
+This repository provides an example of an [External Issuer][] built using the [issuer-lib][] library.
 
 ## Install
 
@@ -40,7 +40,7 @@ You will need the following command line tools installed on your PATH:
 * [Kubebuilder v3.9.1+](https://book.kubebuilder.io/quick-start.html#installation)
 * [Kustomize v3.8.1+](https://kustomize.io/)
 
-You may also want to read: the [Kubebuilder Book] and the [cert-manager Concepts Documentation] for further background
+You may also want to read: the [Kubebuilder Book][] and the [cert-manager Concepts Documentation][] for further background
 information.
 
 ### Create a test cluster
@@ -86,7 +86,7 @@ We will add more to it in the next steps.
 
 ### Creating MyIssuer and MyClusterIssuer custom resources
 
-An [External Issuer] must implement two custom resources for compatibility with cert-manager: `MyIssuer` and `MyClusterIssuer`
+An [External Issuer][] must implement two custom resources for compatibility with cert-manager: `MyIssuer` and `MyClusterIssuer`
 
 NOTE: It is important to understand the [Concept of Issuers] before proceeding.
 
@@ -282,8 +282,6 @@ We use a [Distroless Docker Image][] as our Docker base image,
 and we configure our `manager` process to run as `USER: nonroot:nonroot`.
 This limits the privileges of the `manager` process in the cluster.
 
-The [kube-rbac-proxy][] sidecar Docker image also uses a non-root user by default (since v0.7.0).
-
 Additionally we [Configure a Security Context][] for the manager Pod.
 We set `runAsNonRoot`, which ensure that the Kubelet will validate the image at runtime
 to ensure that it does not run as UID 0 (root) and fail to start the container if it does.
@@ -307,6 +305,15 @@ Click the `Publish release` button to trigger the automated release process:
 
 ## Links
 
+* [External Issuer]
+* [issuer-lib]
+* [cert-manager Concepts Documentation]
+* [Kubebuilder Book]
+* [Kubebuilder Markers]
+* [Distroless Docker Image]
+* [Configure a Security Context]
+* [GitHub New Release Page]
+
 [External Issuer]: https://cert-manager.io/docs/contributing/external-issuers
 [issuer-lib]: https://github.com/cert-manager/issuer-lib
 [cert-manager Concepts Documentation]: https://cert-manager.io/docs/concepts
@@ -314,5 +321,4 @@ Click the `Publish release` button to trigger the automated release process:
 [Kubebuilder Markers]: https://book.kubebuilder.io/reference/markers.html
 [Distroless Docker Image]: https://github.com/GoogleContainerTools/distroless
 [Configure a Security Context]: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-[kube-rbac-proxy]: https://github.com/brancz/kube-rbac-proxy
 [GitHub New Release Page]: https://github.com/cert-manager/sample-external-issuer/releases/new
