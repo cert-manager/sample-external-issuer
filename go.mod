@@ -2,8 +2,6 @@ module github.com/cert-manager/sample-external-issuer
 
 go 1.24.0
 
-toolchain go1.24.7
-
 godebug default=go1.23
 
 require (
