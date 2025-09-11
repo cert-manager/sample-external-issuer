@@ -1,0 +1,11 @@
+issuer: https://token.actions.githubusercontent.com
+subject: repo:cert-manager/sample-external-issuer:ref:refs/heads/main
+
+permissions:
+  administration: read
+  contents: write
+  issues: write
+  pull_requests: write
+  security_events: read
+  statuses: write
+  workflows: write
