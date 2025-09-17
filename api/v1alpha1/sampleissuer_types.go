@@ -54,8 +54,8 @@ type IssuerSpec struct {
 	AuthSecretName string `json:"authSecretName"`
 }
 
-func (vi *SampleIssuer) GetStatus() *v1alpha1.IssuerStatus {
-	return &vi.Status
+func (vi *SampleIssuer) GetConditions() []metav1.Condition {
+	return vi.Status.Conditions
 }
 
 // GetIssuerTypeIdentifier returns a string that uniquely identifies the
