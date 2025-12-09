@@ -7,8 +7,8 @@ godebug default=go1.23
 require (
 	github.com/cert-manager/cert-manager v1.19.1
 	github.com/cert-manager/issuer-lib v0.9.0
-	github.com/onsi/ginkgo/v2 v2.27.2
-	github.com/onsi/gomega v1.38.2
+	github.com/onsi/ginkgo/v2 v2.27.3
+	github.com/onsi/gomega v1.38.3
 	k8s.io/api v0.34.2
 	k8s.io/apimachinery v0.34.2
 	k8s.io/client-go v0.34.2
