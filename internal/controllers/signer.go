@@ -86,7 +86,7 @@ func (s Issuer) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 
 		Sign:          s.Sign,
 		Check:         s.Check,
-		EventRecorder: mgr.GetEventRecorderFor("sampleissuer.cert-manager.io"),
+		EventRecorder: mgr.GetEventRecorder("sampleissuer.cert-manager.io"),
 	}).SetupWithManager(ctx, mgr)
 }
 
