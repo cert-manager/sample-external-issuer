@@ -114,7 +114,7 @@ func keyUsagesFromStrings(usages []capi.KeyUsage) (x509.KeyUsage, []x509.ExtKeyU
 		}
 	}
 
-	var sorted sortedExtKeyUsage
+	sorted := make(sortedExtKeyUsage, 0, len(extKeyUsages))
 	for eku := range extKeyUsages {
 		sorted = append(sorted, eku)
 	}
@@ -124,7 +124,7 @@ func keyUsagesFromStrings(usages []capi.KeyUsage) (x509.KeyUsage, []x509.ExtKeyU
 		return 0, nil, fmt.Errorf("unrecognized usage values: %q", unrecognized)
 	}
 
-	return keyUsage, []x509.ExtKeyUsage(sorted), nil
+	return keyUsage, sorted, nil
 }
 
 type sortedExtKeyUsage []x509.ExtKeyUsage
