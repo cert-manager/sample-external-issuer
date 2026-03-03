@@ -66,7 +66,7 @@ type Issuer struct {
 
 // +kubebuilder:rbac:groups=sample-issuer.example.com,resources=sampleclusterissuers;sampleissuers,verbs=get;list;watch
 // +kubebuilder:rbac:groups=sample-issuer.example.com,resources=sampleclusterissuers/status;sampleissuers/status,verbs=patch
-// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificaterequests/status,verbs=patch
