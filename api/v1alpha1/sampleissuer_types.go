@@ -83,7 +83,3 @@ type SampleIssuerList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []SampleIssuer `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&SampleIssuer{}, &SampleIssuerList{})
-}

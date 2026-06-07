@@ -70,7 +70,3 @@ type SampleClusterIssuerList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []SampleClusterIssuer `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&SampleClusterIssuer{}, &SampleClusterIssuerList{})
-}
