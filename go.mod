@@ -5,7 +5,7 @@ go 1.26.0
 godebug default=go1.23
 
 require (
-	github.com/cert-manager/cert-manager v1.21.0-beta.0
+	github.com/cert-manager/cert-manager v1.21.0
 	github.com/cert-manager/issuer-lib v0.11.0
 	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.42.1
